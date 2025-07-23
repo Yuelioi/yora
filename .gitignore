@@ -1,0 +1,10 @@
+*.exe
+*.dll
+*.so
+
+.git
+
+.cache
+
+
+Lagrange.OneBot
