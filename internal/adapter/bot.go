@@ -1,5 +1,7 @@
 package adapter
 
+import "yora/protocols/onebot/message"
+
 type Bot interface {
 	SelfID() string
 
@@ -7,13 +9,17 @@ type Bot interface {
 	Platform() string
 
 	// 发送消息（通用格式）
-	SendMessage(params ...any) error
+	Send(messageType string, userId string, groupId string, message message.Message) (any, error)
 
+	// 调用 API（通用格式）
 	CallAPI(params ...any) (any, error)
 
-	// 获取原始 bot 对象（如 OneBot 的详细结构）
-	Raw() any
-
 	// 添加中间件
-	AddMiddleware(middleware ...Middleware)
+	AddMiddleware(middleware Middleware)
+
+	// 运行Bot
+	Run() error
+
+	// 关闭Bot
+	ShutDown() error
 }

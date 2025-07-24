@@ -5,16 +5,17 @@ import (
 	"time"
 	"yora/internal/adapter"
 	"yora/internal/event"
-
-	"github.com/rs/zerolog/log"
+	"yora/internal/log"
 )
+
+var logger = log.NewMiddleware("事件耗时统计")
 
 // LoggingMiddleware 日志中间件
 func LoggingMiddleware() adapter.Middleware {
-	return adapter.MiddlewareFunc(func(ctx context.Context, event event.Event, next func(ctx context.Context, event event.Event) error) error {
+	return adapter.MiddlewareFunc("日志中间件", func(ctx context.Context, event event.Event, next func(ctx context.Context, event event.Event) error) error {
 		start := time.Now()
 
-		log.Debug().Msgf("开始处理事件: %s, 类型: %s", event.SelfID(), event.Type())
+		logger.Debug().Msgf("处理事件: %s, 类型: %s", event.SelfID(), event.Type())
 
 		err := next(ctx, event)
 
@@ -23,7 +24,7 @@ func LoggingMiddleware() adapter.Middleware {
 			return err
 
 		} else {
-			log.Info().Msgf("事件处理成功: %s, 类型: %s, 耗时: %v", event.SelfID(), event.Type(), duration)
+			logger.Info().Msgf("事件处理成功: %s, 类型: %s, 耗时: %v", event.SelfID(), event.Type(), duration)
 		}
 
 		return err

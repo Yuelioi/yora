@@ -1,18 +1,34 @@
 package onebot
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strconv"
 	"yora/internal/adapter"
 	"yora/internal/event"
+	"yora/protocols/onebot/client"
+	"yora/protocols/onebot/message"
 )
 
+var _ adapter.Adapter = (*Adapter)(nil)
+
 type Adapter struct {
+	Client *client.Client
+}
+
+// CallAPI implements adapter.Adapter.
+func (a *Adapter) CallAPI(action string, params any) (any, error) {
+	return a.Client.CallAPI(action, params)
 }
 
 func NewAdapter() *Adapter {
-	return &Adapter{}
+
+	ctx := context.Background()
+	return &Adapter{
+		Client: client.NewClient(ctx),
+	}
 }
 
 // GetCapabilities implements adapter.Adapter.
@@ -68,6 +84,20 @@ func (a *Adapter) ParseEvent(raw any) (event.Event, error) {
 	return &e, nil
 }
 
+func (a *Adapter) Send(messageType string, userId string, groupId string, message message.Message) (any, error) {
+
+	gid, err := strconv.Atoi(groupId)
+	if err != nil {
+		return nil, fmt.Errorf("groupId or userId is not int")
+	}
+	uid, err := strconv.Atoi(userId)
+	if err != nil {
+		return nil, fmt.Errorf("groupId or userId is not int")
+	}
+
+	return a.Client.SendMessage(messageType, uid, gid, message)
+}
+
 // ParseMessage implements adapter.Adapter.
 func (a *Adapter) ParseMessage(raw string) ([]event.Segment, error) {
 	var segments []event.Segment
@@ -83,14 +113,10 @@ func (a *Adapter) Protocol() adapter.Protocol {
 func (a *Adapter) ValidateEvent(event event.Event) error {
 
 	supportedEventTypes := []string{"message", "notice", "request", "meta_event"}
-	supportedSubTypes := []string{"normal"}
 
 	// 校验事件类型
 	if !slices.Contains(supportedEventTypes, event.Type()) {
 		return fmt.Errorf("unsupported event type")
-	}
-	if !slices.Contains(supportedSubTypes, event.SubType()) {
-		return fmt.Errorf("unsupported sub type")
 	}
 
 	return nil

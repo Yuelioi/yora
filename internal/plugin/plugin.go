@@ -1,9 +1,12 @@
 package plugin
 
+import "yora/internal/matcher"
+
 // Plugin 插件接口
 type Plugin interface {
 	Load() error
 	Unload() error
+	Matchers() []matcher.Matcher
 	Metadata() *Metadata
 }
 

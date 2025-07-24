@@ -18,7 +18,7 @@ func RateLimitMiddleware(maxRequests int, window time.Duration) adapter.Middlewa
 
 	users := sync.Map{}
 
-	return adapter.MiddlewareFunc(func(ctx context.Context, e event.Event, next func(ctx context.Context, event event.Event) error) error {
+	return adapter.MiddlewareFunc("频率限制中间件", func(ctx context.Context, e event.Event, next func(ctx context.Context, event event.Event) error) error {
 		var userID string
 		if msgEvent, ok := e.(event.MessageEvent); ok {
 			if msgEvent.Sender().ID() != "" {

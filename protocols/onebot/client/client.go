@@ -29,7 +29,7 @@ type Client struct {
 }
 
 func NewClient(ctx context.Context) *Client {
-	log := log.NewAPILogger("api")
+	log := log.NewAPI("api")
 	return &Client{
 		logger:  log,
 		sendCh:  make(chan any, 100),

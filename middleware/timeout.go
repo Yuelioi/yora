@@ -9,7 +9,7 @@ import (
 )
 
 func TimeoutMiddleware(timeout time.Duration) adapter.Middleware {
-	return adapter.MiddlewareFunc(func(ctx context.Context, event event.Event, next func(ctx context.Context, event event.Event) error) error {
+	return adapter.MiddlewareFunc("超时中间件", func(ctx context.Context, event event.Event, next func(ctx context.Context, event event.Event) error) error {
 
 		ec, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()

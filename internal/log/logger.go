@@ -12,25 +12,18 @@ import (
 type Component string
 
 const (
-	BotComponent Component = "bot"
-	APIComponent Component = "api"
-
-	MiddlewareComponent Component = "middleware"
-	PluginComponent     Component = "plugin"
-	DependComponent     Component = "depend"
-	HandlerComponent    Component = "handler"
-	EventComponent      Component = "event"
-
-	WebsocketComponent Component = "websocket"
-
-	DatabaseComponent Component = "database"
-
-	DefaultComponent Component = "default"
+	MiddlewareComponent    Component = "middleware"
+	DependComponent        Component = "depend"
+	BotComponent           Component = "bot"
+	APIComponent           Component = "api"
+	PluginManagerComponent Component = "plugin_manager"
+	PluginComponent        Component = "plugin"
+	MatcherComponent       Component = "matcher"
+	HandlerComponent       Component = "handler"
 )
 
-// NewLogger 创建带主题的日志记录器
-func NewLogger(component Component, name string) zerolog.Logger {
-	// 根据组件类型选择主题
+// New 创建带主题的日志记录器
+func New(component Component, name string) zerolog.Logger {
 	theme := getComponentTheme(component)
 
 	consoleWriter := zerolog.ConsoleWriter{
@@ -90,17 +83,14 @@ type ComponentTheme struct {
 // getComponentTheme 根据组件获取主题
 func getComponentTheme(component Component) ComponentTheme {
 	themes := map[Component]ComponentTheme{
-		BotComponent:        {"🤖", "\x1b[94m"},  // 蓝色
-		DependComponent:     {"⚙️", "\x1b[90m"}, // 黑色
-		WebsocketComponent:  {"🔌", "\x1b[95m"},  // 紫色
-		APIComponent:        {"🌐", "\x1b[96m"},  // 青色
-		PluginComponent:     {"🔧", "\x1b[93m"},  // 黄色
-		HandlerComponent:    {"⚡", "\x1b[92m"},  // 绿色
-		DatabaseComponent:   {"🗄️", "\x1b[91m"}, // 红色
-		MiddlewareComponent: {"🔗", "\x1b[97m"},  // 白色
-		EventComponent:      {"📨", "\x1b[35m"},  // 紫红色
-		DefaultComponent:    {"📋", "\x1b[37m"},  // 白色
-
+		MiddlewareComponent:    {"🌉", "\x1b[97m"},  // 白色
+		DependComponent:        {"📦", "\x1b[90m"},  // 灰色
+		BotComponent:           {"🚀", "\x1b[94m"},  // 蓝色
+		APIComponent:           {"🔌", "\x1b[96m"},  // 青色
+		PluginManagerComponent: {"🎛️", "\x1b[95m"}, // 紫色
+		PluginComponent:        {"🧩", "\x1b[93m"},  // 黄色
+		MatcherComponent:       {"🔍", "\x1b[35m"},  // 紫红色
+		HandlerComponent:       {"⚡", "\x1b[92m"},  // 绿色
 	}
 
 	if theme, exists := themes[component]; exists {
@@ -126,52 +116,46 @@ func getLevelColor(level string) string {
 	return "\x1b[37m" // 默认白色
 }
 
-// NewLoggerWithLevel 创建带日志级别的记录器
-func NewLoggerWithLevel(component Component, name string, level zerolog.Level) zerolog.Logger {
-	logger := NewLogger(component, name)
+// NewWithLevel 创建带日志级别的记录器
+func NewWithLevel(component Component, name string, level zerolog.Level) zerolog.Logger {
+	logger := New(component, name)
 	return logger.Level(level)
 }
 
-// NewGlobalLogger 设置全局日志记录器
-func NewGlobalLogger(component Component, name string) {
-	logger := NewLogger(component, name)
+// SetGlobal 设置全局日志记录器
+func SetGlobal(component Component, name string) {
+	logger := New(component, name)
 	zerolog.DefaultContextLogger = &logger
 }
 
-func NewBotLogger(name string) zerolog.Logger {
-	return NewLogger(BotComponent, name)
-}
-func NewDependLogger(name string) zerolog.Logger {
-	return NewLogger(DependComponent, name)
+func NewMiddleware(name string) zerolog.Logger {
+	return New(MiddlewareComponent, name)
 }
 
-func NewWebsocketLogger(name string) zerolog.Logger {
-	return NewLogger(WebsocketComponent, name)
+func NewDepend(name string) zerolog.Logger {
+	return New(DependComponent, name)
 }
 
-func NewAPILogger(name string) zerolog.Logger {
-	return NewLogger(APIComponent, name)
+func NewBot(name string) zerolog.Logger {
+	return New(BotComponent, name)
 }
 
-func NewPluginLogger(name string) zerolog.Logger {
-	return NewLogger(PluginComponent, name)
+func NewAPI(name string) zerolog.Logger {
+	return New(APIComponent, name)
 }
 
-func NewHandlerLogger(name string) zerolog.Logger {
-	return NewLogger(HandlerComponent, name)
+func NewPluginManager(name string) zerolog.Logger {
+	return New(PluginManagerComponent, name)
 }
 
-func NewDatabaseLogger(name string) zerolog.Logger {
-	return NewLogger(DatabaseComponent, name)
+func NewPlugin(name string) zerolog.Logger {
+	return New(PluginComponent, name)
 }
 
-func NewMiddlewareLogger(name string) zerolog.Logger {
-	return NewLogger(MiddlewareComponent, name)
+func NewMatcher(name string) zerolog.Logger {
+	return New(MatcherComponent, name)
 }
 
-func NewEventLogger(name string) zerolog.Logger {
-	return NewLogger(EventComponent, name)
-}
-func NewDefaultLogger(name string) zerolog.Logger {
-	return NewLogger(DefaultComponent, name)
+func NewHandler(name string) zerolog.Logger {
+	return New(HandlerComponent, name)
 }

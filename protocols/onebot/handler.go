@@ -18,7 +18,7 @@ type Handler struct {
 func NewHandler(f any, deps ...matcher.Dependent) *Handler {
 
 	hds := make([]matcher.Dependent, 0, len(deps)+1)
-	hds = append(hds, OnebotEvent())
+	hds = append(hds, OnebotEvent(), OneBot())
 
 	h := &Handler{
 		handlerFunc:  reflect.ValueOf(f),

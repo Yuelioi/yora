@@ -25,6 +25,13 @@ func OnebotEvent() matcher.Dependent {
 // 	})
 // }
 
+func OneBot() matcher.Dependent {
+	return matcher.NewDependency(func(ctx context.Context, e event.Event) (any, error) {
+		return BOT, nil
+	})
+
+}
+
 // 获取用户信息
 func UserInfo() matcher.Dependent {
 	return matcher.NewDependency(func(ctx context.Context, e event.Event) (any, error) {
