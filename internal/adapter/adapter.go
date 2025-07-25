@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"yora/internal/event"
-	"yora/protocols/onebot/message"
 )
 
 // ProtocolAdapter 协议适配器接口
@@ -24,18 +23,7 @@ type Adapter interface {
 
 	CallAPI(action string, params any) (any, error)
 
-	Send(messageType string, userId string, groupId string, message message.Message) (any, error)
-}
-
-type PlatformInfo interface {
-	// Name 平台名称
-	Name() string
-
-	// Version 平台/协议版本
-	Version() string
-
-	// Extra 平台特定的额外信息
-	Extra() map[string]any
+	Send(messageType string, userId string, groupId string, message event.Message) (any, error)
 }
 
 // Capabilities 协议能力集

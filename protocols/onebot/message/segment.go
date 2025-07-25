@@ -2,13 +2,11 @@ package message
 
 import (
 	"encoding/json"
-	"fmt"
 	"yora/internal/event"
 )
 
 var _ event.Segment = (*Segment)(nil)
 
-// Segment 表示消息中的一个片段
 type Segment struct {
 	TypeStr string         `json:"type"`
 	DataMap map[string]any `json:"data"`
@@ -21,60 +19,40 @@ func (s Segment) Json() map[string]any {
 	}
 }
 
-// Data 返回片段的数据映射
-func (s *Segment) Data() map[string]any {
+func (s Segment) Data() map[string]any {
 	return s.DataMap
 }
 
-// GetData 根据键获取数据，返回值和是否存在
-func (s *Segment) GetData(key string) (any, bool) {
+func (s Segment) GetData(key string) (any, bool) {
 	val, ok := s.DataMap[key]
 	return val, ok
 }
 
-// IsType 检查片段是否为指定类型
-func (s *Segment) IsType(segmentType string) bool {
+func (s Segment) IsType(segmentType string) bool {
 	return s.TypeStr == segmentType
 }
 
-// String 将片段转换为字符串表示
-func (s *Segment) String() string {
+func (s Segment) String() string {
 	switch s.TypeStr {
 	case "text":
-		// 对于文本片段，直接返回文本内容
 		if text, ok := s.GetData("text"); ok {
-			if textStr, ok := text.(string); ok {
-				return textStr
+			if str, ok := text.(string); ok {
+				return str
 			}
 		}
 	case "at":
-		// 对于 @ 提及片段，返回 @用户名 格式
-		if name, ok := s.GetData("qq"); ok {
-			return fmt.Sprintf("@%v", name)
+		if qq, ok := s.GetData("qq"); ok {
+			return "@" + qq.(string)
 		}
 	case "image":
-		// 对于图片片段，返回占位符
-		return "[图片]"
-	case "face":
-		// 对于表情片段，返回表情符号或名称
-		if name, ok := s.GetData("name"); ok {
-			return fmt.Sprintf("[%v]", name)
+		if url, ok := s.GetData("url"); ok {
+			return url.(string)
 		}
-	default:
-		// 对于其他类型，返回类型名
-		return fmt.Sprintf("[%s]", s.TypeStr)
 	}
-
-	// 如果无法转换，返回 JSON 格式
-	data, err := json.Marshal(s)
-	if err != nil {
-		return fmt.Sprintf("[%s:error]", s.TypeStr)
-	}
-	return string(data)
+	return ""
 }
 
-// Type 返回片段的类型
-func (s *Segment) Type() string {
+func (s Segment) Type() string {
 	return s.TypeStr
 }
 

@@ -24,7 +24,7 @@ func LoggingMiddleware() adapter.Middleware {
 			return err
 
 		} else {
-			logger.Info().Msgf("事件处理成功: %s, 类型: %s, 耗时: %v", event.SelfID(), event.Type(), duration)
+			logger.Info().Msgf("事件处理成功 BOT: %s, 类型: %s, 耗时: %v", event.SelfID(), event.Type(), duration)
 		}
 
 		return err

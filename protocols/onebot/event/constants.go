@@ -1,4 +1,4 @@
-package onebot
+package event
 
 type PostType string
 type MessageType string

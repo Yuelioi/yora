@@ -1,4 +1,4 @@
-package onebot
+package event
 
 import (
 	"strconv"
@@ -7,6 +7,7 @@ import (
 )
 
 var _ event.Sender = (*Sender)(nil)
+var _ event.GroupSender = (*GroupSender)(nil)
 
 type Sender struct {
 	UserID   int    `json:"user_id"`
@@ -47,7 +48,7 @@ func (s Sender) DisplayName() string {
 	return s.Card
 }
 
-// AvatarURL implements event.Sender.
+// TODO
 func (s Sender) AvatarURL() string {
 	return ""
 }
@@ -56,14 +57,9 @@ func (s Sender) Role() string {
 	return s.RoleStr
 }
 
-// IsAnonymous implements event.Sender.
+// TODO
 func (s Sender) IsAnonymous() bool {
 	return false
-}
-
-// IsBot implements event.Sender.
-func (s Sender) IsBot() bool {
-	panic("unimplemented")
 }
 
 // Protocol implements event.Sender.

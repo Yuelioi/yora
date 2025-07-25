@@ -18,6 +18,9 @@ type Message interface {
 
 	// GetSegmentsByType 获取指定类型的所有消息段
 	GetSegmentsByType(segmentType string) []Segment
+
+	// Append 添加消息段
+	Append(seg Segment) Message
 }
 
 // Segment 消息段接口

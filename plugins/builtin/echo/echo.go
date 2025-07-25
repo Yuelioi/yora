@@ -1,55 +1,66 @@
 package echo
 
 import (
+	"regexp"
+	"strings"
+	"yora/internal/bot"
 	"yora/internal/matcher"
+	"yora/internal/params"
 	"yora/internal/plugin"
-	"yora/protocols/onebot"
+	"yora/protocols/onebot/event"
 	"yora/protocols/onebot/message"
 )
 
 var _ plugin.Plugin = (*echo)(nil)
 
 type echo struct {
-	matchers []matcher.Matcher
+	plugin.BasePlugin
 }
 
 var Echo = &echo{}
 
-// Load implements plugin.Plugin.
 func (e *echo) Load() error {
-	banHandler := onebot.NewHandler(
-		e.echo,
-	)
+	cmdMatcher := matcher.OnCommand([]string{"echo"}, true, matcher.NewHandler(e.echo).RegisterDependent(matcher.Event()))
+	e.RegisterMatcher(cmdMatcher)
 
-	cmdMatcher := onebot.OnCommand("echo", nil, 10, false, banHandler)
-	e.matchers = append(e.matchers, cmdMatcher)
-	return nil
-}
-
-func (e *echo) Matchers() []matcher.Matcher {
-	return e.matchers
-}
-
-// Metadata implements plugin.Plugin.
-func (e *echo) Metadata() *plugin.Metadata {
-	return &plugin.Metadata{
+	e.SetMetadata(&plugin.Metadata{
 		ID:          "echo",
 		Name:        "Echo",
 		Description: "Echo back the message",
 		Version:     "0.1.0",
-		Author:      "Yoram",
+		Author:      "YueLi",
 		Usage:       "echo <message>",
 		Extra:       nil,
-	}
-}
+		Group:       "builtin",
+	})
 
-// Unload implements plugin.Plugin.
-func (e *echo) Unload() error {
 	return nil
 }
 
-func (e *echo) echo(event *onebot.Event, bot *onebot.Bot) error {
-	bot.Send("group", "0", event.GroupID(), message.New(message.NewTextSegment("ECHO")).Append(message.NewAtSegment("435826135")))
+func (e *echo) echo(event event.MessageEvent, bot bot.Bot, params params.CommandArgs) error {
+	var msgs message.Message = message.New(nil)
+
+	var echoRegex = regexp.MustCompile(`(?i)echo`)
+
+	for _, seg := range event.Message().Segments() {
+
+		if seg.Type() == "text" {
+			content := seg.String()
+			cleaned := strings.TrimSpace(echoRegex.ReplaceAllString(content, ""))
+			if cleaned != "" {
+				s := message.NewTextSegment(cleaned)
+				msgs.Append(s)
+			}
+			continue
+		}
+		msgs.Append(seg)
+	}
+
+	if event.IsGroup() {
+		bot.Send("group", "0", event.ChatID(), message.New(msgs))
+	} else {
+		bot.Send("private", event.UserID(), "0", message.New(msgs))
+	}
 	return nil
 
 }

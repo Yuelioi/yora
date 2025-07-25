@@ -1,4 +1,4 @@
-package onebot
+package bot
 
 import (
 	"context"
@@ -10,28 +10,26 @@ import (
 	"yora/internal/event"
 	"yora/internal/log"
 	"yora/internal/plugin"
-	"yora/protocols/onebot/message"
 
 	"github.com/rs/zerolog"
+
+	"yora/internal/bot"
+	onbotAdapter "yora/protocols/onebot/adapter"
 )
 
-// 确保 Bot 实现了 adapter.Bot 接口
-var _ adapter.Bot = (*Bot)(nil)
-
-var (
-	BOT *Bot // 用于注入依赖
-)
+var _ bot.Bot = (*Bot)(nil)
+var BOT *Bot // 用于注入依赖)
 
 // Bot OneBot 协议机器人实现
 type Bot struct {
-	logger   zerolog.Logger   // 日志记录器
-	pending  sync.Map         // 待处理请求映射表
-	registry *AdapterRegistry // 适配器注册表
-	manager  *PluginManager   // 插件管理器
-	server   *http.Server     // HTTP 服务器
-	mu       sync.RWMutex     // 读写锁
-	config   map[string]any   // 配置信息
-	running  bool             // 运行状态
+	logger   zerolog.Logger           // 日志记录器
+	pending  sync.Map                 // 待处理请求映射表
+	registry *adapter.AdapterRegistry // 适配器注册表
+	manager  *plugin.PluginManager    // 插件管理器
+	server   *http.Server             // HTTP 服务器
+	mu       sync.RWMutex             // 读写锁
+	config   map[string]any           // 配置信息
+	running  bool                     // 运行状态
 }
 
 // NewBot 创建新的机器人实例
@@ -41,8 +39,8 @@ func NewBot() *Bot {
 	bot := &Bot{
 		logger:   logger,
 		pending:  sync.Map{},
-		manager:  NewPluginManager(),
-		registry: NewAdapterRegistry(),
+		manager:  plugin.NewPluginManager(),
+		registry: adapter.NewAdapterRegistry(),
 		mu:       sync.RWMutex{},
 		config:   make(map[string]any),
 		running:  false,
@@ -108,12 +106,6 @@ func (b *Bot) Run() error {
 	// 设置路由
 	b.setupRoutes()
 
-	// 启动插件
-	if err := b.manager.LoadPlugins(); err != nil {
-		b.logger.Error().Err(err).Msg("插件加载失败")
-		return fmt.Errorf("插件加载失败: %w", err)
-	}
-
 	// 创建HTTP服务器
 	b.server = &http.Server{
 		Addr:         ":12001",
@@ -166,27 +158,23 @@ func (b *Bot) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Str("User-Agent", r.Header.Get("User-Agent")).
 		Msg("收到 WebSocket 连接请求")
 
-	// 查找 OneBot 适配器
-	b.registry.mu.RLock()
-	defer b.registry.mu.RUnlock()
+	adp, err := b.registry.GetAdapter(adapter.ProtocolOneBot)
+	if err != nil {
+		b.logger.Error().
+			Err(err).
+			Msg("获取适配器失败")
+		panic("获取适配器失败")
+	}
 
-	for protocol, adapter := range b.registry.adapters {
-		if protocol == adapter.Protocol() {
-			b.logger.Debug().Msg("找到 OneBot 适配器，处理 WebSocket 连接")
+	b.logger.Debug().Msg("找到 OneBot 适配器，处理 WebSocket 连接")
 
-			if onebotAdapter, ok := adapter.(*Adapter); ok {
-				onebotAdapter.Client.HandleWebSocket(w, r, func(message []byte) {
-					if err := b.Publish(message, adapter.Protocol()); err != nil {
-						b.logger.Error().Err(err).Msg("处理 WebSocket 消息失败")
-					}
-				})
-				return
+	if onebotAdapter, ok := adp.(*onbotAdapter.Adapter); ok {
+		onebotAdapter.Client.HandleWebSocket(w, r, func(message []byte) {
+			if err := b.publish(message, onebotAdapter.Protocol()); err != nil {
+				b.logger.Error().Err(err).Msg("处理 WebSocket 消息失败")
 			}
-
-			b.logger.Error().Msg("OneBot 适配器类型转换失败")
-			http.Error(w, "适配器类型错误", http.StatusInternalServerError)
-			return
-		}
+		})
+		return
 	}
 
 	b.logger.Error().Msg("未找到 OneBot 适配器")
@@ -284,35 +272,34 @@ func (b *Bot) CallAPI(params ...any) (any, error) {
 		Msg("调用API")
 
 	// 查找 OneBot 适配器
-	b.registry.mu.RLock()
-	defer b.registry.mu.RUnlock()
-
-	for protocol, adapter := range b.registry.adapters {
-		if protocol == adapter.Protocol() {
-			b.logger.Debug().Msg("使用 OneBot 适配器调用API")
-
-			result, err := adapter.CallAPI(action, apiParams)
-			if err != nil {
-				b.logger.Error().
-					Err(err).
-					Str("动作", action).
-					Msg("API调用失败")
-				return nil, fmt.Errorf("API调用失败: %w", err)
-			}
-
-			b.logger.Debug().
-				Str("动作", action).
-				Msg("API调用成功")
-			return result, nil
-		}
+	adp, err := b.registry.GetAdapter(adapter.ProtocolOneBot)
+	if err != nil {
+		b.logger.Error().
+			Err(err).
+			Msg("获取适配器失败")
+		return nil, fmt.Errorf("获取适配器失败: %w", err)
 	}
 
-	b.logger.Error().Str("动作", action).Msg("未找到支持的协议适配器")
-	return nil, fmt.Errorf("未找到支持的协议")
+	b.logger.Debug().Msg("使用 OneBot 适配器调用API")
+
+	result, err := adp.CallAPI(action, apiParams)
+	if err != nil {
+		b.logger.Error().
+			Err(err).
+			Str("动作", action).
+			Msg("API调用失败")
+		return nil, fmt.Errorf("API调用失败: %w", err)
+	}
+
+	b.logger.Debug().
+		Str("动作", action).
+		Msg("API调用成功")
+	return result, nil
+
 }
 
 // Send 发送消息
-func (b *Bot) Send(messageType string, userId string, groupId string, msg message.Message) (any, error) {
+func (b *Bot) Send(messageType string, userId string, groupId string, msg event.Message) (any, error) {
 	if msg == nil {
 		b.logger.Error().Msg("发送消息失败：消息内容为空")
 		return nil, fmt.Errorf("消息内容不能为空")
@@ -329,36 +316,34 @@ func (b *Bot) Send(messageType string, userId string, groupId string, msg messag
 		Str("群组ID", groupId).
 		Msg("发送消息")
 
-	// 查找 OneBot 适配器
-	b.registry.mu.RLock()
-	defer b.registry.mu.RUnlock()
-
-	for protocol, adapter := range b.registry.adapters {
-		if protocol == adapter.Protocol() {
-			b.logger.Debug().Msg("使用 OneBot 适配器发送消息")
-
-			result, err := adapter.Send(messageType, userId, groupId, msg)
-			if err != nil {
-				b.logger.Error().
-					Err(err).
-					Str("消息类型", messageType).
-					Str("用户ID", userId).
-					Str("群组ID", groupId).
-					Msg("消息发送失败")
-				return nil, fmt.Errorf("消息发送失败: %w", err)
-			}
-
-			b.logger.Info().
-				Str("消息类型", messageType).
-				Str("用户ID", userId).
-				Str("群组ID", groupId).
-				Msg("消息发送成功")
-			return result, nil
-		}
+	adp, err := b.registry.GetAdapter(adapter.ProtocolOneBot)
+	if err != nil {
+		b.logger.Error().
+			Err(err).
+			Msg("获取适配器失败")
+		return nil, fmt.Errorf("获取适配器失败: %w", err)
 	}
 
-	b.logger.Error().Msg("未找到支持的协议适配器")
-	return nil, fmt.Errorf("未找到支持的协议")
+	b.logger.Debug().Msg("使用 OneBot 适配器发送消息")
+
+	result, err := adp.Send(messageType, userId, groupId, msg)
+	if err != nil {
+		b.logger.Error().
+			Err(err).
+			Str("消息类型", messageType).
+			Str("用户ID", userId).
+			Str("群组ID", groupId).
+			Msg("消息发送失败")
+		return nil, fmt.Errorf("消息发送失败: %w", err)
+	}
+
+	b.logger.Info().
+		Str("消息类型", messageType).
+		Str("用户ID", userId).
+		Str("群组ID", groupId).
+		Msg("消息发送成功")
+	return result, nil
+
 }
 
 // Register 注册协议适配器
@@ -403,7 +388,7 @@ func (b *Bot) Unregister(protocol adapter.Protocol) error {
 }
 
 // Publish 发布事件到插件系统
-func (b *Bot) Publish(raw any, protocol adapter.Protocol) error {
+func (b *Bot) publish(raw any, protocol adapter.Protocol) error {
 	if raw == nil {
 		b.logger.Error().Msg("发布事件失败：原始数据为空")
 		return fmt.Errorf("原始数据不能为空")
@@ -460,7 +445,7 @@ func (b *Bot) Publish(raw any, protocol adapter.Protocol) error {
 
 	b.logger.Debug().
 		Int("中间件数量", len(middlewares)).
-		Msg("中间件链构建完成，处理事件")
+		Msg("处理事件")
 
 	// 执行处理链
 	ctx := context.Background()
@@ -477,7 +462,7 @@ func (b *Bot) Publish(raw any, protocol adapter.Protocol) error {
 }
 
 // AddPlugin 添加插件到管理器
-func (b *Bot) AddPlugin(plugins ...plugin.Plugin) {
+func (b *Bot) LoadPlugins(plugins ...plugin.Plugin) {
 	if len(plugins) == 0 {
 		b.logger.Warn().Msg("尝试添加空插件列表")
 		return
@@ -491,6 +476,14 @@ func (b *Bot) AddPlugin(plugins ...plugin.Plugin) {
 			continue
 		}
 
+		if err := p.Load(); err != nil {
+			b.logger.Error().
+				Err(err).
+				Int("插件索引", i).
+				Msg("插件加载失败，跳过")
+			continue
+		}
+
 		metadata := p.Metadata()
 		if err := b.manager.RegisterPlugin(p); err != nil {
 			b.logger.Error().
@@ -499,6 +492,25 @@ func (b *Bot) AddPlugin(plugins ...plugin.Plugin) {
 				Msg("插件注册失败")
 		}
 	}
+}
+
+func (b *Bot) RemovePlugin(name string) error {
+	b.logger.Info().Str("插件名", name).Msg("移除插件")
+
+	if err := b.manager.UnregisterPlugin(name); err != nil {
+		b.logger.Error().
+			Err(err).
+			Str("插件名", name).
+			Msg("插件移除失败")
+		return fmt.Errorf("插件移除失败: %w", err)
+	}
+
+	b.logger.Info().Str("插件名", name).Msg("插件移除成功")
+	return nil
+}
+
+func (b *Bot) Plugins() []plugin.Plugin {
+	return b.manager.Plugins()
 }
 
 // GetAdapter 获取协议适配器
@@ -534,14 +546,4 @@ func (b *Bot) IsRunning() bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.running
-}
-
-// GetPluginManager 获取插件管理器
-func (b *Bot) GetPluginManager() *PluginManager {
-	return b.manager
-}
-
-// GetAdapterRegistry 获取适配器注册表
-func (b *Bot) GetAdapterRegistry() *AdapterRegistry {
-	return b.registry
 }

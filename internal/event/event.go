@@ -21,8 +21,6 @@ type Event interface {
 
 	// Raw 返回原始事件数据
 	Raw() any
-
-	Extra() map[string]any
 }
 
 // MessageEvent 消息事件接口
@@ -44,9 +42,6 @@ type MessageEvent interface {
 	// Sender 返回发送者信息
 	Sender() Sender
 
-	// ChatType 聊天类型：private、group、channel、supergroup 等
-	ChatType() string
-
 	// IsGroup 判断是否为群聊消息
 	IsGroup() bool
 
@@ -58,6 +53,9 @@ type MessageEvent interface {
 
 	// ReplyTo 回复的消息ID（如果是回复消息）
 	ReplyTo() string
+
+	// Extra 额外数据
+	Extra() map[string]any
 }
 
 // MetaEvent 元事件接口（如心跳、状态变更等）
@@ -66,6 +64,9 @@ type MetaEvent interface {
 
 	// Status 状态信息
 	Status() map[string]any
+
+	// Extra 额外数据
+	Extra() map[string]any
 }
 
 type NoticeEvent interface {
@@ -74,22 +75,19 @@ type NoticeEvent interface {
 	// UserID 相关用户ID
 	UserID() string
 
-	// GroupID 相关群聊ID
-	GroupID() string
-
 	// ChatID 相关聊天会话ID
 	ChatID() string
 
 	// OperatorID 操作者ID（如果有）
 	OperatorID() string
+
+	// Extra 额外数据
+	Extra() map[string]any
 }
 
 // RequestEvent 请求事件接口（如好友申请、入群申请等）
 type RequestEvent interface {
 	Event
-
-	// RequestType 请求类型
-	RequestType() string
 
 	// UserID 请求用户ID
 	UserID() string

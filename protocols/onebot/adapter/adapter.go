@@ -1,4 +1,4 @@
-package onebot
+package adapter
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 	"yora/internal/event"
 	"yora/protocols/onebot/client"
 	"yora/protocols/onebot/message"
+
+	onebotEvent "yora/protocols/onebot/event"
 )
 
 var _ adapter.Adapter = (*Adapter)(nil)
@@ -75,7 +77,7 @@ func (a *Adapter) ParseEvent(raw any) (event.Event, error) {
 		return nil, fmt.Errorf("ParseEvent: raw 类型应为 []byte，实际为 %T", raw)
 	}
 
-	var e Event
+	var e onebotEvent.Event
 
 	if err := json.Unmarshal(data, &e); err != nil {
 		return nil, err
@@ -84,7 +86,7 @@ func (a *Adapter) ParseEvent(raw any) (event.Event, error) {
 	return &e, nil
 }
 
-func (a *Adapter) Send(messageType string, userId string, groupId string, message message.Message) (any, error) {
+func (a *Adapter) Send(messageType string, userId string, groupId string, msg event.Message) (any, error) {
 
 	gid, err := strconv.Atoi(groupId)
 	if err != nil {
@@ -95,7 +97,12 @@ func (a *Adapter) Send(messageType string, userId string, groupId string, messag
 		return nil, fmt.Errorf("groupId or userId is not int")
 	}
 
-	return a.Client.SendMessage(messageType, uid, gid, message)
+	m, ok := msg.(*message.Message)
+	if !ok {
+		return nil, fmt.Errorf("msg 类型应为 message.Message，实际为 %T", msg)
+	}
+
+	return a.Client.SendMessage(messageType, uid, gid, *m)
 }
 
 // ParseMessage implements adapter.Adapter.
@@ -121,27 +128,4 @@ func (a *Adapter) ValidateEvent(event event.Event) error {
 
 	return nil
 
-}
-
-type PlatformInfo struct {
-	Platform        string
-	PlatformVersion string
-	AppVersion      string
-}
-
-// Extra implements event.PlatformInfo.
-func (p *PlatformInfo) Extra() map[string]any {
-	m := make(map[string]any)
-	m["app_version"] = p.AppVersion
-	return m
-}
-
-// Name implements event.PlatformInfo.
-func (p *PlatformInfo) Name() string {
-	return p.Platform
-}
-
-// Version implements event.PlatformInfo.
-func (p *PlatformInfo) Version() string {
-	return p.PlatformVersion
 }

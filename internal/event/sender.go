@@ -13,9 +13,6 @@ type Sender interface {
 	// AvatarURL 头像URL（如果有）
 	AvatarURL() string
 
-	// IsBot 是否为机器人
-	IsBot() bool
-
 	// IsAnonymous 是否为匿名用户
 	IsAnonymous() bool
 

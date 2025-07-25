@@ -1,1 +1,77 @@
 package help
+
+import (
+	"yora/internal/bot"
+	"yora/internal/matcher"
+	"yora/internal/params"
+	"yora/internal/plugin"
+	"yora/protocols/onebot/event"
+	"yora/protocols/onebot/message"
+)
+
+var _ plugin.Plugin = (*helper)(nil)
+
+var Helper = &helper{}
+
+type helper struct {
+	plugin.BasePlugin
+}
+
+// Load implements plugin.Plugin.
+func (h *helper) Load() error {
+
+	helpHandler := matcher.NewHandler(h.listplugins)
+	helpMatcher := matcher.OnCommand([]string{"help"}, true, helpHandler)
+	h.RegisterMatcher(helpMatcher)
+
+	h.SetMetadata(&plugin.Metadata{
+		ID:          "help",
+		Name:        "Help Plugin",
+		Description: "This plugin provides help commands for users",
+		Version:     "0.1.0",
+		Author:      "YueLi",
+		Usage:       "help [command]",
+		Group:       "builtin",
+		Extra:       nil,
+	})
+
+	return nil
+}
+
+// Metadata implements plugin.Plugin.
+
+func (h *helper) listplugins(bot bot.Bot, event *event.MessageEvent, params *params.CommandArgs) {
+	plugins := bot.Plugins()
+	// 基于 group 分组
+
+	filtered := make(map[string][]plugin.Plugin)
+	for _, p := range plugins {
+		if p.Metadata().Group == "" {
+			filtered[""] = append(filtered[""], p)
+		} else {
+			filtered[p.Metadata().Group] = append(filtered[p.Metadata().Group], p)
+		}
+	}
+
+	msgs := ""
+
+	for group, ps := range filtered {
+		if group == "" {
+			msgs += "Available plugins:\n"
+			for _, p := range ps {
+				msgs += "- " + p.Metadata().Name + "\n"
+			}
+		} else {
+			msgs += "Available plugins in group " + group + ":\n"
+			for _, p := range ps {
+				msgs += "- " + p.Metadata().Name + "\n"
+			}
+		}
+	}
+
+	if event.IsGroup() {
+		bot.Send("group", "0", event.ChatID(), message.New(msgs))
+	} else {
+		bot.Send("private", event.UserID(), "0", message.New(msgs))
+	}
+}
