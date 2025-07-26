@@ -7,13 +7,16 @@ import (
 	"sync"
 	"time"
 	"yora/internal/adapter"
+	"yora/internal/depends"
 	"yora/internal/event"
 	"yora/internal/log"
+	"yora/internal/middleware"
 	"yora/internal/plugin"
 
 	"github.com/rs/zerolog"
 
 	"yora/internal/bot"
+	"yora/internal/message"
 	onbotAdapter "yora/protocols/onebot/adapter"
 )
 
@@ -36,10 +39,20 @@ type Bot struct {
 func NewBot() *Bot {
 	logger := log.NewBot("月灵Bot")
 
+	deps := []depends.Dependent{
+		depends.Ctx(),
+		depends.Event(),
+		depends.MessageEvent(),
+		depends.MetaEvent(),
+		depends.RequestEvent(),
+		depends.NoticeEvent(),
+		OneBot(),
+	}
+
 	bot := &Bot{
 		logger:   logger,
 		pending:  sync.Map{},
-		manager:  plugin.NewPluginManager(),
+		manager:  plugin.NewPluginManager(deps...),
 		registry: adapter.NewAdapterRegistry(),
 		mu:       sync.RWMutex{},
 		config:   make(map[string]any),
@@ -116,7 +129,7 @@ func (b *Bot) Run() error {
 
 	b.logger.Info().Str("地址", b.server.Addr).Msg("启动 HTTP 服务器")
 
-	// 启动服务器（非阻塞）
+	// 启动服务器
 	go func() {
 		if err := b.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			b.logger.Error().Err(err).Msg("HTTP 服务器启动失败")
@@ -299,7 +312,7 @@ func (b *Bot) CallAPI(params ...any) (any, error) {
 }
 
 // Send 发送消息
-func (b *Bot) Send(messageType string, userId string, groupId string, msg event.Message) (any, error) {
+func (b *Bot) Send(messageType string, userId string, groupId string, msg message.Message) (any, error) {
 	if msg == nil {
 		b.logger.Error().Msg("发送消息失败：消息内容为空")
 		return nil, fmt.Errorf("消息内容不能为空")
@@ -347,7 +360,7 @@ func (b *Bot) Send(messageType string, userId string, groupId string, msg event.
 }
 
 // Register 注册协议适配器
-func (b *Bot) Register(adapter adapter.Adapter) error {
+func (b *Bot) RegisterAdapter(adapter adapter.Adapter) error {
 	if adapter == nil {
 		b.logger.Error().Msg("注册适配器失败：适配器为空")
 		return fmt.Errorf("适配器不能为空")
@@ -414,6 +427,11 @@ func (b *Bot) publish(raw any, protocol adapter.Protocol) error {
 		return fmt.Errorf("事件解析失败: %w", err)
 	}
 
+	// 忽略元事件
+	if evt.Type() == "meta_event" {
+		return nil
+	}
+
 	// 验证事件
 	if err := adapter.ValidateEvent(evt); err != nil {
 		b.logger.Error().
@@ -463,19 +481,7 @@ func (b *Bot) publish(raw any, protocol adapter.Protocol) error {
 
 // AddPlugin 添加插件到管理器
 func (b *Bot) LoadPlugins(plugins ...plugin.Plugin) {
-	if len(plugins) == 0 {
-		b.logger.Warn().Msg("尝试添加空插件列表")
-		return
-	}
-
-	b.logger.Info().Int("插件数量", len(plugins)).Msg("添加插件")
-
 	for i, p := range plugins {
-		if p == nil {
-			b.logger.Error().Int("插件索引", i).Msg("插件为空，跳过")
-			continue
-		}
-
 		if err := p.Load(); err != nil {
 			b.logger.Error().
 				Err(err).
@@ -484,13 +490,7 @@ func (b *Bot) LoadPlugins(plugins ...plugin.Plugin) {
 			continue
 		}
 
-		metadata := p.Metadata()
-		if err := b.manager.RegisterPlugin(p); err != nil {
-			b.logger.Error().
-				Err(err).
-				Str("插件名", metadata.Name).
-				Msg("插件注册失败")
-		}
+		b.manager.RegisterPlugin(p)
 	}
 }
 
@@ -531,7 +531,7 @@ func (b *Bot) GetAdapter(protocol adapter.Protocol) (adapter.Adapter, error) {
 }
 
 // AddMiddleware 添加中间件
-func (b *Bot) AddMiddleware(m adapter.Middleware) {
+func (b *Bot) AddMiddleware(m middleware.Middleware) {
 	if m == nil {
 		b.logger.Warn().Msg("尝试添加空中间件")
 		return

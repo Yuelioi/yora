@@ -1,13 +1,10 @@
 package models
 
-// Response 通用响应结构体
-type Response struct {
-	Status  string `json:"status"`
-	Retcode int    `json:"retcode"`
-	Data    any    `json:"data,omitempty"`
-}
-
 // PrivateFile 私聊文件相关结构体
+
+type URL = struct {
+	URL string `json:"url"`
+}
 
 // GetPrivateFileRequest 获取私聊文件资源链接请求
 type GetPrivateFileRequest struct {
@@ -17,20 +14,7 @@ type GetPrivateFileRequest struct {
 }
 
 // GetPrivateFileResponse 获取私聊文件资源链接响应
-type GetPrivateFileResponse struct {
-	Status  string `json:"status"`  // 状态
-	Retcode int    `json:"retcode"` // 返回码
-	Data    struct {
-		URL string `json:"url"` // 文件资源链接
-	} `json:"data"`
-}
-
-// UploadPrivateFileRequest 上传私聊文件请求
-type UploadPrivateFileRequest struct {
-	UserID int    `json:"user_id"` // 用户ID
-	File   string `json:"file"`    // 文件内容/路径
-	Name   string `json:"name"`    // 文件名
-}
+type GetPrivateFileResponse = Response[URL]
 
 // GroupFile 群文件相关结构体
 
@@ -41,13 +25,7 @@ type GetGroupFileRequest struct {
 }
 
 // GetGroupFileResponse 获取群文件资源链接响应
-type GetGroupFileResponse struct {
-	Status  string `json:"status"`  // 状态
-	Retcode int    `json:"retcode"` // 返回码
-	Data    struct {
-		URL string `json:"url"` // 文件资源链接
-	} `json:"data"`
-}
+type GetGroupFileResponse = Response[URL]
 
 // GetGroupRootFilesRequest 获取群根目录文件列表请求
 type GetGroupRootFilesRequest struct {
@@ -120,4 +98,11 @@ type RenameGroupFolderRequest struct {
 	GroupID       int    `json:"group_id"`        // 群ID
 	FolderID      string `json:"folder_id"`       // 文件夹ID
 	NewFolderName string `json:"new_folder_name"` // 新文件夹名称
+}
+
+// UploadPrivateFileRequest 上传私聊文件请求
+type UploadPrivateFileRequest struct {
+	UserID int    `json:"user_id"` // 用户ID
+	File   string `json:"file"`    // 文件内容/路径
+	Name   string `json:"name"`    // 文件名
 }

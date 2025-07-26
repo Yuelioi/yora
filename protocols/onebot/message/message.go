@@ -1,25 +1,21 @@
 package message
 
 import (
-	"encoding/json"
-	"fmt"
 	"strings"
-	"yora/internal/event"
+	basemsg "yora/internal/message"
 )
 
-var _ event.Message = Message{}
+var _ basemsg.Message = Message{}
 
 // Message 表示一个消息，由多个 Segment 组成
-type Message []Segment
+type Message []basemsg.Segment
 
 // GetSegmentsByType 根据类型获取所有匹配的片段
-func (m Message) GetSegmentsByType(segmentType string) []event.Segment {
-	var result []event.Segment
-	for i := range m {
-		if m[i].IsType(segmentType) {
-			// 拷贝值到新变量，防止闭包问题
-			seg := m[i]
-			result = append(result, &seg)
+func (m Message) GetSegmentsByType(segmentType string) []basemsg.Segment {
+	var result []basemsg.Segment
+	for _, segment := range m {
+		if segment.IsType(segmentType) {
+			result = append(result, segment)
 		}
 	}
 	return result
@@ -44,57 +40,76 @@ func (m Message) IsEmpty() bool {
 func (m Message) PlainText() string {
 	var parts []string
 	for _, segment := range m {
-		parts = append(parts, segment.String())
+		if segment.IsType("text") {
+			parts = append(parts, segment.String())
+		}
 	}
 	return strings.Join(parts, "")
 }
 
 // Segments 返回消息中的所有片段
-func (m Message) Segments() []event.Segment {
-	result := make([]event.Segment, len(m))
-	for i := range m {
-		seg := m[i]
-		result[i] = &seg
-	}
+func (m Message) Segments() []basemsg.Segment {
+	result := make([]basemsg.Segment, len(m))
+	copy(result, m)
 	return result
 }
 
 // String 将消息转换为字符串表示
 func (m Message) String() string {
-	data, err := json.Marshal(m)
-	if err != nil {
-		return fmt.Sprintf("Message[%d segments]", len(m))
+	if len(m) == 0 {
+		return ""
 	}
-	return string(data)
+
+	var parts []string
+	for _, segment := range m {
+		str := segment.String()
+		if str != "" {
+			parts = append(parts, str)
+		}
+	}
+	return strings.Join(parts, "")
 }
 
 // NewMessage 创建新消息
-func NewMessage(segments ...Segment) Message {
+func NewMessage(segments ...basemsg.Segment) Message {
 	return Message(segments)
 }
 
 // Append 追加消息段（返回新 Message）
-func (m Message) Append(segment event.Segment) event.Message {
-	if s, ok := segment.(Segment); ok {
-		return append(m, s)
-	}
-	panic("segment is not of type Segment")
+func (m Message) Append(seg basemsg.Segment) basemsg.Message {
+	return append(m, seg)
 }
 
 // New 创建消息对象，可以是 string、Segment、[]Segment、map、[]any、Message
 func New(data any) Message {
 	switch v := data.(type) {
 	case string:
-		return Message{{TypeStr: "text", DataMap: map[string]any{"text": v}}}
+		if v == "" {
+			return Message{}
+		}
+		return Message{NewTextSegment(v)}
 
 	case Message:
 		return v
 
-	case []Segment:
+	case []basemsg.Segment:
 		return Message(v)
 
-	case Segment:
+	case []*Segment:
+		result := make(Message, len(v))
+		for i, seg := range v {
+			result[i] = seg
+		}
+		return result
+
+	case *Segment:
+		if v == nil {
+			return Message{}
+		}
 		return Message{v}
+
+	case Segment:
+		return Message{&v}
 
 	case []any:
 		var msg Message
@@ -107,15 +122,23 @@ func New(data any) Message {
 	case map[string]any:
 		typ, ok := v["type"].(string)
 		if !ok {
-			return nil
+			return Message{}
 		}
-		dataMap, ok := v["data"].(map[string]any)
-		if !ok {
-			return nil
+
+		var dataMap map[string]any
+		if data, exists := v["data"]; exists {
+			if dm, ok := data.(map[string]any); ok {
+				dataMap = dm
+			} else {
+				dataMap = make(map[string]any)
+			}
+		} else {
+			dataMap = make(map[string]any)
 		}
-		return Message{{TypeStr: typ, DataMap: dataMap}}
+
+		return Message{NewSegment(typ, dataMap)}
 
 	default:
-		return nil
+		return Message{}
 	}
 }

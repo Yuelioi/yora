@@ -2,14 +2,25 @@ package message
 
 import (
 	"encoding/json"
-	"yora/internal/event"
+	basemsg "yora/internal/message"
 )
 
-var _ event.Segment = (*Segment)(nil)
+var _ basemsg.Segment = (*Segment)(nil)
 
 type Segment struct {
 	TypeStr string         `json:"type"`
 	DataMap map[string]any `json:"data"`
+}
+
+// NewSegment 创建新的消息段
+func NewSegment(segType string, data map[string]any) *Segment {
+	if data == nil {
+		data = make(map[string]any)
+	}
+	return &Segment{
+		TypeStr: segType,
+		DataMap: data,
+	}
 }
 
 func (s Segment) Json() map[string]any {

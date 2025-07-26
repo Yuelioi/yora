@@ -2,6 +2,8 @@ package adapter
 
 import (
 	"yora/internal/event"
+	"yora/internal/message"
+	"yora/internal/middleware"
 )
 
 // ProtocolAdapter 协议适配器接口
@@ -13,7 +15,7 @@ type Adapter interface {
 	ParseEvent(raw any) (event.Event, error)
 
 	// ParseMessage 解析协议特定的消息为通用消息段
-	ParseMessage(raw string) ([]event.Segment, error)
+	ParseMessage(raw string) ([]message.Segment, error)
 
 	// ValidateEvent 验证事件数据是否有效
 	ValidateEvent(event event.Event) error
@@ -21,46 +23,26 @@ type Adapter interface {
 	// GetCapabilities 获取协议能力集
 	GetCapabilities() Capabilities
 
+	// CallAPI 调用协议API
 	CallAPI(action string, params any) (any, error)
 
-	Send(messageType string, userId string, groupId string, message event.Message) (any, error)
+	// Send 发送消息
+	Send(messageType string, userId string, groupId string, message message.Message) (any, error)
 }
 
-// Capabilities 协议能力集
-type Capabilities struct {
-	// SupportsGroupChat 是否支持群聊
-	SupportsGroupChat bool
+type Registry interface {
+	// Register 注册协议适配器
+	Register(adapter Adapter) error
 
-	// SupportsPrivateChat 是否支持私聊
-	SupportsPrivateChat bool
+	// Unregister 注销协议适配器
+	Unregister(protocol Protocol) error
 
-	// SupportsFileUpload 是否支持文件上传
-	SupportsFileUpload bool
+	// GetAdapter 获取协议适配器
+	GetAdapter(protocol Protocol) (Adapter, error)
 
-	// SupportsRichText 是否支持富文本
-	SupportsRichText bool
+	// 获取协议适配器
+	Adapters() map[Protocol]Adapter
 
-	// SupportsReply 是否支持回复消息
-	SupportsReply bool
-
-	// SupportsForward 是否支持转发消息
-	SupportsForward bool
-
-	// SupportsEdit 是否支持编辑消息
-	SupportsEdit bool
-
-	// SupportsDelete 是否支持删除消息
-	SupportsDelete bool
-
-	// SupportedSegmentTypes 支持的消息段类型
-	SupportedSegmentTypes []string
-
-	// MaxMessageLength 最大消息长度
-	MaxMessageLength int
-
-	// MaxFileSize 最大文件大小（字节）
-	MaxFileSize int64
-
-	// Extra 协议特定的其他能力
-	Extra map[string]any
+	// 获取所有中间件
+	Middlewares() []middleware.Middleware
 }

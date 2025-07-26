@@ -10,29 +10,6 @@ type Condition interface {
 	Match(ctx context.Context, e event.Event) bool
 }
 
-type multiCondition struct {
-	conditions []Condition
-	combiner   func(results []bool) bool
-}
-
-func (mc *multiCondition) Match(ctx context.Context, e event.Event) bool {
-	results := make([]bool, len(mc.conditions))
-	for i, cond := range mc.conditions {
-		results[i] = cond.Match(ctx, e)
-	}
-	return mc.combiner(results)
-}
-
-type singleCondition struct {
-	condition Condition
-	modifier  func(result bool) bool
-}
-
-func (sc *singleCondition) Match(ctx context.Context, e event.Event) bool {
-	originalResult := sc.condition.Match(ctx, e)
-	return sc.modifier(originalResult)
-}
-
 // Not 返回一个 Condition，当传入的 condition Match 为 true 时，返回 false；反之，返回 true。
 func Not(condition Condition) Condition {
 	return &singleCondition{

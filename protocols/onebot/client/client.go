@@ -20,6 +20,18 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+var (
+	clientOnce     sync.Once
+	clientInstance *Client
+)
+
+func GetClient(ctx context.Context) *Client {
+	clientOnce.Do(func() {
+		clientInstance = newClient(ctx)
+	})
+	return clientInstance
+}
+
 type Client struct {
 	pending sync.Map
 	logger  zerolog.Logger
@@ -28,7 +40,7 @@ type Client struct {
 	ctx     context.Context
 }
 
-func NewClient(ctx context.Context) *Client {
+func newClient(ctx context.Context) *Client {
 	log := log.NewAPI("api")
 	return &Client{
 		logger:  log,

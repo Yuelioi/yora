@@ -4,23 +4,40 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"yora/internal/depends"
 	"yora/internal/event"
 )
 
 type Handler struct {
-	fn        any
-	deps      []Dependent                // 依赖容器 (仅注册使用)
-	typedDeps map[reflect.Type]Dependent // 类型缓存 (在调用前使用)
+	fnType         reflect.Type                   // 函数类型
+	fnValue        reflect.Value                  // 函数
+	deps           []depends.Dependent            // 依赖容器 (仅注册使用)
+	typedDepsValue map[reflect.Type]reflect.Value // 类型缓存 (在调用前使用)
+	numParams      int                            // 参数数量缓存
+	paramTypes     []reflect.Type                 // 参数
 }
 
 // RegisterDependent 注册依赖
-func (h *Handler) RegisterDependent(provider Dependent) *Handler {
-	if h.deps == nil {
-		h.deps = make([]Dependent, 0)
+func (h *Handler) RegisterDependent(providers ...depends.Dependent) *Handler {
+	h.deps = append(h.deps, providers...)
+	return h
+}
+
+// BuildDependentType 建立依赖类型缓存
+func (h *Handler) BuildDependentType(ctx context.Context, e event.Event) error {
+	for i := 0; i < h.numParams; i++ {
+		paramType := h.paramTypes[i]
+
+		matchedDep, err := h.findMatchingDependencyValue(paramType, ctx, e)
+		if err != nil {
+			return fmt.Errorf("no dependency found for parameter %d (type: %v): %w", i, paramType, err)
+		}
+
+		// 缓存类型映射
+		h.typedDepsValue[paramType] = matchedDep
 	}
 
-	h.deps = append(h.deps, provider)
-	return h
+	return nil
 }
 
 func NewHandler(fn any) *Handler {
@@ -28,110 +45,73 @@ func NewHandler(fn any) *Handler {
 	fnType := fnValue.Type()
 
 	if fnType.Kind() != reflect.Func {
-		panic("not a function")
+		panic("new handler: not a function")
 	}
 
-	h := &Handler{
-		fn:        fn,
-		deps:      make([]Dependent, 0),
-		typedDeps: make(map[reflect.Type]Dependent),
+	numParams := fnType.NumIn()
+	paramTypes := make([]reflect.Type, numParams)
+
+	for i := 0; i < numParams; i++ {
+		paramTypes[i] = fnType.In(i)
 	}
 
-	return h
+	return &Handler{
+		fnValue:        fnValue,
+		fnType:         fnType,
+		deps:           make([]depends.Dependent, 0),
+		typedDepsValue: make(map[reflect.Type]reflect.Value),
+		numParams:      numParams,
+		paramTypes:     paramTypes,
+	}
 }
 
+// Call 执行函数
 func (h *Handler) Call(ctx context.Context, e event.Event) error {
-	fnValue := reflect.ValueOf(h.fn)
-	fnType := fnValue.Type()
-
-	if fnType.Kind() != reflect.Func {
-		return fmt.Errorf("not a function")
-	}
-
 	// 准备参数
-	args := make([]reflect.Value, fnType.NumIn())
-	for i := 0; i < fnType.NumIn(); i++ {
-		paramType := fnType.In(i)
+	args := make([]reflect.Value, h.numParams)
+	for i := 0; i < h.numParams; i++ {
+		paramType := h.paramTypes[i]
 
-		// 特殊处理context和event
-		switch {
-		case paramType == reflect.TypeOf((*context.Context)(nil)).Elem():
-			args[i] = reflect.ValueOf(ctx)
-		case paramType == reflect.TypeOf((*event.Event)(nil)).Elem():
-			args[i] = reflect.ValueOf(e)
-		default:
-			// 从依赖容器中获取
-			if provider, ok := h.typedDeps[paramType]; ok {
-				args[i] = reflect.ValueOf(provider)
-			} else {
-				return fmt.Errorf("no provider for type %v", paramType)
-			}
+		// 从依赖容器中获取
+		if v, ok := h.typedDepsValue[paramType]; ok {
+			args[i] = v
+		} else {
+			return fmt.Errorf("no provider for type %v", paramType)
 		}
 	}
 
 	// 调用函数
-	results := fnValue.Call(args)
+	results := h.fnValue.Call(args)
 
-	// 处理返回值
+	// 处理返回值 - 只检查最后一个返回值是否为 error
 	if len(results) > 0 {
-		if err, ok := results[len(results)-1].Interface().(error); ok {
-			return err
+		if lastResult := results[len(results)-1]; !lastResult.IsNil() {
+			if err, ok := lastResult.Interface().(error); ok && err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-// validate校验参数并建立类型缓存
-func (h *Handler) Validate() error {
-	// funcType := h.handlerFunc.Type()
-	// numParams := funcType.NumIn()
+// findMatchingDependency 为指定类型找到匹配的依赖
+func (h *Handler) findMatchingDependencyValue(targetType reflect.Type, ctx context.Context, e event.Event) (reflect.Value, error) {
+	for _, dep := range h.deps {
+		v := dep.Provide(ctx, e)
+		if v == nil {
+			continue // 跳过 nil 依赖
+		}
 
-	// // 为每个参数类型找到匹配的依赖并缓存
-	// for i := 0; i < numParams; i++ {
-	// 	paramType := funcType.In(i)
+		depType := reflect.TypeOf(v)
+		depValue := reflect.ValueOf(v)
 
-	// 	matchedDep, err := h.findMatchingDependency(paramType)
-	// 	if err != nil {
-	// 		return fmt.Errorf("no dependency found for parameter %d (type: %v): %w", i, paramType, err)
-	// 	}
+		if isTypeCompatible(depType, targetType) {
+			return depValue, nil
+		}
+	}
 
-	// 	// 缓存类型映射
-	// 	h.typeCache[paramType] = matchedDep
-	// }
-
-	return nil
-}
-
-// findMatchingDependency 为指定类型找到匹配的依赖 (支持降级匹配)
-func (h *Handler) findMatchingDependency(targetType reflect.Type) (Dependent, error) {
-	// var fallbackDependencies []Dependent
-
-	// // 注入基础依赖
-
-	// // 第一轮：寻找精确类型匹配的依赖
-	// for _, dep := range h.deps {
-	// 	depType := dep.Provide(ctx context.Context, e event.Event)
-
-	// 	// 如果是动态依赖（Type() 返回 nil），收集起来作为备选
-	// 	if depType == nil {
-	// 		fallbackDependencies = append(fallbackDependencies, dep)
-	// 		continue
-	// 	}
-
-	// 	// 精确类型匹配
-	// 	if isTypeCompatible(depType, targetType) {
-	// 		return dep, nil
-	// 	}
-	// }
-
-	// // 第二轮：如果没找到精确匹配，按顺序尝试使用动态依赖
-	// if len(fallbackDependencies) > 0 {
-	// 	// 返回第一个动态依赖，运行时会尝试从 context 获取
-	// 	return fallbackDependencies[0], nil
-	// }
-
-	return nil, fmt.Errorf("no compatible dependency found for type: %v", targetType)
+	return reflect.Value{}, fmt.Errorf("no compatible dependency found for type: %v", targetType)
 }
 
 // isTypeCompatible 检查类型兼容性

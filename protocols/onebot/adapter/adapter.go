@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"yora/internal/adapter"
 	"yora/internal/event"
+	"yora/internal/message"
 	"yora/protocols/onebot/client"
-	"yora/protocols/onebot/message"
 
 	onebotEvent "yora/protocols/onebot/event"
 )
@@ -29,7 +29,7 @@ func NewAdapter() *Adapter {
 
 	ctx := context.Background()
 	return &Adapter{
-		Client: client.NewClient(ctx),
+		Client: client.GetClient(ctx),
 	}
 }
 
@@ -77,16 +77,45 @@ func (a *Adapter) ParseEvent(raw any) (event.Event, error) {
 		return nil, fmt.Errorf("ParseEvent: raw 类型应为 []byte，实际为 %T", raw)
 	}
 
-	var e onebotEvent.Event
-
-	if err := json.Unmarshal(data, &e); err != nil {
-		return nil, err
+	var base struct {
+		Type string `json:"post_type"`
+	}
+	if err := json.Unmarshal(data, &base); err != nil {
+		return nil, fmt.Errorf("解析事件类型失败: %w", err)
 	}
 
-	return &e, nil
+	switch base.Type {
+	case "message":
+		var e onebotEvent.MessageEvent
+		if err := json.Unmarshal(data, &e); err != nil {
+			return nil, fmt.Errorf("解析 MessageEvent 失败: %w", err)
+		}
+		return &e, nil
+	case "notice":
+		var e onebotEvent.NoticeEvent
+		if err := json.Unmarshal(data, &e); err != nil {
+			return nil, fmt.Errorf("解析 NoticeEvent 失败: %w", err)
+		}
+		return &e, nil
+	case "meta_event":
+		var e onebotEvent.MetaEvent
+		if err := json.Unmarshal(data, &e); err != nil {
+			return nil, fmt.Errorf("解析 MetaEvent 失败: %w", err)
+		}
+		return &e, nil
+	case "request":
+		var e onebotEvent.RequestEvent
+		if err := json.Unmarshal(data, &e); err != nil {
+			return nil, fmt.Errorf("解析 RequestEvent 失败: %w", err)
+		}
+		return &e, nil
+	default:
+		return nil, fmt.Errorf("未知事件类型: %s", base.Type)
+	}
+
 }
 
-func (a *Adapter) Send(messageType string, userId string, groupId string, msg event.Message) (any, error) {
+func (a *Adapter) Send(messageType string, userId string, groupId string, msg message.Message) (any, error) {
 
 	gid, err := strconv.Atoi(groupId)
 	if err != nil {
@@ -97,17 +126,12 @@ func (a *Adapter) Send(messageType string, userId string, groupId string, msg ev
 		return nil, fmt.Errorf("groupId or userId is not int")
 	}
 
-	m, ok := msg.(*message.Message)
-	if !ok {
-		return nil, fmt.Errorf("msg 类型应为 message.Message，实际为 %T", msg)
-	}
-
-	return a.Client.SendMessage(messageType, uid, gid, *m)
+	return a.Client.SendMessage(messageType, uid, gid, msg)
 }
 
 // ParseMessage implements adapter.Adapter.
-func (a *Adapter) ParseMessage(raw string) ([]event.Segment, error) {
-	var segments []event.Segment
+func (a *Adapter) ParseMessage(raw string) ([]message.Segment, error) {
+	var segments []message.Segment
 	return segments, nil
 }
 

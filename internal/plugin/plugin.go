@@ -1,54 +1,66 @@
 package plugin
 
-import "yora/internal/matcher"
+import (
+	"yora/internal/hook"
+	"yora/internal/matcher"
+)
 
 // Plugin 插件接口
 type Plugin interface {
+	// Metadata 插件元数据
 	Metadata() *Metadata
 
+	// SetMetadata 设置插件元数据
 	SetMetadata(*Metadata)
 
+	// Config 插件配置
+	Config() Config
+
+	// RegisterMatcher 注册匹配器
 	RegisterMatcher(m *matcher.Matcher)
 
+	// Load 加载插件
 	Load() error
 
+	// Unload 卸载插件
 	Unload() error
 
+	// Matchers 匹配器
 	Matchers() []*matcher.Matcher
+
+	hook.Hookable
 }
 
-// Metadata 插件元数据
-type Metadata struct {
-	ID          string // 插件标识(必填)
-	Name        string // 插件显示名称(必填)
-	Description string // 插件描述
-	Version     string // 插件版本
-	Author      string // 插件作者
-	Usage       string // 插件用途
-	Group       string // 插件分组
-	Extra       any    // 额外信息
-}
+// Config 配置接口
+type Config interface {
+	// 字段操作
+	Set(key string, value any) error
+	Get(key string) (any, bool)
+	GetString(key string) (string, error)
+	GetInt(key string) (int, error)
+	GetBool(key string) (bool, error)
+	GetFloat64(key string) (float64, error)
 
-type BasePlugin struct {
-	matchers []*matcher.Matcher
-	metadata *Metadata
-}
+	// 批量操作
+	SetAll(data map[string]any) error
+	GetAll() map[string]any
 
-func (p *BasePlugin) Matchers() []*matcher.Matcher {
-	return p.matchers
-}
+	// 持久化
+	SaveToJSON(filepath string) error
+	LoadFromJSON(filepath string) error
+	ToJSON() ([]byte, error)
+	FromJSON(data []byte) error
 
-func (p *BasePlugin) Unload() error {
-	return nil
-}
+	// 配置管理
+	Has(key string) bool
+	Delete(key string) bool
+	Clear()
+	Keys() []string
 
-func (p *BasePlugin) RegisterMatcher(m *matcher.Matcher) {
-	p.matchers = append(p.matchers, m)
-}
+	// 验证和默认值
+	SetDefault(key string, value any)
+	Validate() error
 
-func (p *BasePlugin) Metadata() *Metadata {
-	return p.metadata
-}
-func (p *BasePlugin) SetMetadata(m *Metadata) {
-	p.metadata = m
+	// 配置变更监听
+	OnChange(callback func(key string, oldValue, newValue any))
 }

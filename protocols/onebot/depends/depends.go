@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"yora/internal/depends"
 	"yora/internal/event"
-	"yora/internal/matcher"
 	"yora/internal/params"
-	"yora/protocols/onebot/bot"
 	onebotEvent "yora/protocols/onebot/event"
 )
 
 // 获取 onebot 的 message 事件
-func OnebotEvent() matcher.Dependent {
-	return matcher.DependentFunc(func(ctx context.Context, e event.Event) any {
+func OnebotEvent() depends.Dependent {
+	return depends.DependentFunc(func(ctx context.Context, e event.Event) any {
 		if e2, ok := e.(*onebotEvent.Event); ok {
 			return e2
 		}
@@ -29,16 +28,11 @@ func OnebotEvent() matcher.Dependent {
 // 	})
 // }
 
-func OneBot() matcher.Dependent {
-	return matcher.DependentFunc(func(ctx context.Context, e event.Event) any {
-		return bot.BOT
-	})
-}
-func CommandArgs(cmds []string) matcher.Dependent {
-	return matcher.DependentFunc(func(ctx context.Context, e event.Event) any {
-		msgEvent, ok := e.(*onebotEvent.Event)
+func CommandArgs(cmds []string) depends.Dependent {
+	return depends.DependentFunc(func(ctx context.Context, e event.Event) any {
+		msgEvent, ok := e.(*onebotEvent.MessageEvent)
 		if !ok {
-			panic(fmt.Sprintf("event is not onebot event: %T", e))
+			panic(fmt.Sprintf("message event is not onebot event: %T", e))
 		}
 
 		msg := msgEvent.Message()
@@ -88,13 +82,12 @@ func CommandArgs(cmds []string) matcher.Dependent {
 }
 
 // 获取用户信息
-func UserInfo() matcher.Dependent {
-	return matcher.DependentFunc(func(ctx context.Context, e event.Event) any {
+func UserInfo() depends.Dependent {
+	return depends.DependentFunc(func(ctx context.Context, e event.Event) any {
 		if msgEvent, ok := e.(*onebotEvent.MessageEvent); ok {
 			return &UInfo{
 				UID:      msgEvent.Sender().ID(),
 				Nickname: msgEvent.Sender().Username(),
-				Role:     msgEvent.Sender().Role(),
 			}
 		}
 

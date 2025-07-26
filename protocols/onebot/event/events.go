@@ -26,27 +26,22 @@ type Event struct {
 	TimeStamp       int          `json:"time"`
 }
 
-// Raw implements event.Event.
 func (e *Event) Raw() any {
 	return e
 }
 
-// SelfID implements event.Event.
 func (e *Event) SelfID() string {
 	return strconv.Itoa(e.SelfIDInt)
 }
 
-// SubType implements event.Event.
 func (e *Event) SubType() string {
 	return string(e.SubTypeValue)
 }
 
-// Time implements event.Event.
 func (e *Event) Time() time.Time {
 	return time.Unix(int64(e.TimeStamp), 0)
 }
 
-// Type implements event.Event.
 func (e *Event) Type() string {
 	return string(e.PostType)
 }
@@ -59,23 +54,3 @@ type MessageStyle struct {
 	IsCSFontEffectEnabled bool `json:"is_cs_font_effect_enabled"`
 	BubbleDIYTextID       int  `json:"bubble_diy_text_id"`
 }
-
-// func (e *Event) OperatorID() string {
-// 	return strconv.Itoa(e.UserIDInt)
-// }
-
-// // 实现event.NoticeEvent
-// func (e *Event) GroupID() string {
-// 	return strconv.Itoa(e.GroupIDInt)
-// }
-// func (e *Event) Comment() string {
-// 	return strconv.Itoa(e.GroupIDInt)
-// }
-
-// func (e *Event) Flag() string {
-// 	panic("unimplemented")
-// }
-
-// func (e *Event) RequestType() string {
-// 	panic("unimplemented")
-// }

@@ -3,17 +3,18 @@ package matcher
 import (
 	"context"
 	"yora/internal/condition"
+	"yora/internal/depends"
 	"yora/internal/event"
 	"yora/internal/permission"
 	"yora/internal/rule"
 )
 
 type Matcher struct {
-	Rule       rule.Rule
-	Permission permission.Permission
-	Priority   int
-	Block      bool
-	Handlers   []*Handler
+	Rule       rule.Rule             // 规则(必须全部满足)
+	Permission permission.Permission // 权限(任意满足即可)
+	Priority   int                   // 优先级(越大越优先)
+	Block      bool                  // 是否阻止事件传播
+	Handlers   []*Handler            // 处理器
 }
 
 func (m *Matcher) SetPriority(priority int) {
@@ -38,9 +39,17 @@ func (m *Matcher) Match(ctx context.Context, e event.Event) bool {
 	return true
 }
 
-func (m *Matcher) Handle(ctx context.Context, e event.Event) error {
+func (m *Matcher) Handle(ctx context.Context, e event.Event, deps ...depends.Dependent) error {
 	for _, h := range m.Handlers {
 		if h != nil {
+			// 注入运行时依赖
+			h.RegisterDependent(deps...)
+			// 构建依赖缓存
+			err := h.BuildDependentType(ctx, e)
+			if err != nil {
+				return err
+			}
+
 			if err := h.Call(ctx, e); err != nil {
 				return err
 			}

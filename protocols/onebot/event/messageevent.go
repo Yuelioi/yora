@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"yora/internal/event"
 	"yora/protocols/onebot/message"
+
+	basemsg "yora/internal/message"
 )
 
 var _ event.MessageEvent = (*MessageEvent)(nil)
@@ -24,17 +26,15 @@ func (m *MessageEvent) Extra() map[string]any {
 	panic("unimplemented")
 }
 
-// IsGroup implements event.MessageEvent.
 func (m *MessageEvent) IsGroup() bool {
-	return m.SubTypeValue == "group"
+	return m.MessageType == "group"
 }
 
-// IsPrivate implements event.MessageEvent.
 func (m *MessageEvent) IsPrivate() bool {
-	return m.SubTypeValue == "private"
+	return m.MessageType == "private"
 }
 
-func (e *Event) Message() event.Message {
+func (e *Event) Message() basemsg.Message {
 	return message.New(e.MessageValue)
 }
 
@@ -59,7 +59,7 @@ func (m *MessageEvent) ReplyTo() string {
 }
 
 // Sender implements event.MessageEvent.
-func (m *MessageEvent) Sender() event.Sender {
+func (m *MessageEvent) Sender() basemsg.Sender {
 	return m.SenderValue
 }
 

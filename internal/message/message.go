@@ -1,5 +1,6 @@
-package event
+package message
 
+// Message 消息接口
 type Message interface {
 	// Segments 获取所有消息段
 	Segments() []Segment
@@ -39,4 +40,30 @@ type Segment interface {
 
 	// GetData 获取指定键的数据
 	GetData(key string) (any, bool)
+}
+
+type Sender interface {
+	// ID 唯一用户ID
+	ID() string
+
+	// Username 用户名（如果有）
+	Username() string
+
+	// DisplayName 显示名称/昵称
+	DisplayName() string
+
+	// AvatarURL 头像URL（如果有）
+	AvatarURL() string
+
+	// IsAnonymous 是否为匿名用户
+	IsAnonymous() bool
+
+	// Raw 原始结构体
+	Raw() any
+
+	// Role 群内角色：owner、admin、member...
+	Role() string
+
+	// Extra 平台特定的额外信息
+	Extra() map[string]any
 }

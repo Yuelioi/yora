@@ -1,6 +1,8 @@
 package models
 
-import "yora/protocols/onebot/message"
+import (
+	"yora/internal/message"
+)
 
 type MessageRequest struct {
 	Message message.Message `json:"message"`

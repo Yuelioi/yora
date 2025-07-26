@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"yora/internal/adapter"
 	"yora/internal/event"
+	"yora/internal/middleware"
 )
 
-func TimeoutMiddleware(timeout time.Duration) adapter.Middleware {
-	return adapter.MiddlewareFunc("超时中间件", func(ctx context.Context, event event.Event, next func(ctx context.Context, event event.Event) error) error {
+func TimeoutMiddleware(timeout time.Duration) middleware.Middleware {
+	return middleware.MiddlewareFunc("超时中间件", func(ctx context.Context, event event.Event, next func(ctx context.Context, event event.Event) error) error {
 
 		ec, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()

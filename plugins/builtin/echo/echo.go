@@ -1,11 +1,13 @@
 package echo
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"yora/internal/bot"
+	"yora/internal/hook"
 	"yora/internal/matcher"
-	"yora/internal/params"
+	basemsg "yora/internal/message"
 	"yora/internal/plugin"
 	"yora/protocols/onebot/event"
 	"yora/protocols/onebot/message"
@@ -17,49 +19,62 @@ type echo struct {
 	plugin.BasePlugin
 }
 
-var Echo = &echo{}
+var Echo *echo
+
+func init() {
+	Echo = plugin.Register(&echo{BasePlugin: plugin.NewBasePlugin()}).
+		WithHook(hook.PluginAfterLoad, func(ctx *hook.HookContext) error {
+			fmt.Println("  -> Echo AfterLoad Hook Triggered")
+			return nil
+		}).Plugin
+}
 
 func (e *echo) Load() error {
-	cmdMatcher := matcher.OnCommand([]string{"echo"}, true, matcher.NewHandler(e.echo).RegisterDependent(matcher.Event()))
+	e.BasePlugin.Load()
+
+	cmdMatcher := matcher.OnCommand([]string{"echo"}, true, matcher.NewHandler(e.echo))
 	e.RegisterMatcher(cmdMatcher)
 
 	e.SetMetadata(&plugin.Metadata{
 		ID:          "echo",
 		Name:        "Echo",
-		Description: "Echo back the message",
+		Description: "重复发送消息",
 		Version:     "0.1.0",
-		Author:      "YueLi",
+		Author:      "月离",
 		Usage:       "echo <message>",
-		Extra:       nil,
+		Extra:       make(map[string]any),
 		Group:       "builtin",
 	})
 
 	return nil
 }
 
-func (e *echo) echo(event event.MessageEvent, bot bot.Bot, params params.CommandArgs) error {
-	var msgs message.Message = message.New(nil)
+func (e *echo) echo(evt *event.MessageEvent, bot bot.Bot) error {
+	var msgs basemsg.Message = message.NewMessage()
 
 	var echoRegex = regexp.MustCompile(`(?i)echo`)
 
-	for _, seg := range event.Message().Segments() {
-
+	for _, seg := range evt.Message().Segments() {
 		if seg.Type() == "text" {
 			content := seg.String()
 			cleaned := strings.TrimSpace(echoRegex.ReplaceAllString(content, ""))
 			if cleaned != "" {
 				s := message.NewTextSegment(cleaned)
-				msgs.Append(s)
+				msgs = msgs.Append(s)
 			}
 			continue
 		}
-		msgs.Append(seg)
+		msgs = msgs.Append(seg)
 	}
 
-	if event.IsGroup() {
-		bot.Send("group", "0", event.ChatID(), message.New(msgs))
+	if msgs.IsEmpty() {
+		return nil
+	}
+
+	if evt.IsGroup() {
+		bot.Send("group", "0", evt.ChatID(), msgs)
 	} else {
-		bot.Send("private", event.UserID(), "0", message.New(msgs))
+		bot.Send("private", evt.UserID(), "0", msgs)
 	}
 	return nil
 

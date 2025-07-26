@@ -26,12 +26,6 @@ func (r *RequestEvent) Flag() string {
 	panic("unimplemented")
 }
 
-// Raw implements event.RequestEvent.
-// Subtle: this method shadows the method (Event).Raw of RequestEvent.Event.
-func (r *RequestEvent) Raw() any {
-	panic("unimplemented")
-}
-
 // Time implements event.RequestEvent.
 // Subtle: this method shadows the method (Event).Time of RequestEvent.Event.
 func (r *RequestEvent) Time() time.Time {

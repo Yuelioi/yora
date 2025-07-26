@@ -3,30 +3,14 @@ package adapter
 import (
 	"fmt"
 	"sync"
+
+	"yora/internal/middleware"
 )
-
-type Registry interface {
-
-	// Register 注册协议适配器
-	Register(adapter Adapter) error
-
-	// Unregister 注销协议适配器
-	Unregister(protocol Protocol) error
-
-	// GetAdapter 获取协议适配器
-	GetAdapter(protocol Protocol) (Adapter, error)
-
-	// 获取协议适配器
-	Adapters() map[Protocol]Adapter
-
-	// 获取所有中间件
-	Middlewares() []Middleware
-}
 
 type AdapterRegistry struct {
 	mu          sync.RWMutex
 	adapters    map[Protocol]Adapter
-	middlewares []Middleware
+	middlewares []middleware.Middleware
 }
 
 // Adapters implements Registry.
@@ -35,14 +19,14 @@ func (r *AdapterRegistry) Adapters() map[Protocol]Adapter {
 }
 
 // Middlewares implements Registry.
-func (r *AdapterRegistry) Middlewares() []Middleware {
+func (r *AdapterRegistry) Middlewares() []middleware.Middleware {
 	return r.middlewares
 }
 
 func NewAdapterRegistry() *AdapterRegistry {
 	return &AdapterRegistry{
 		adapters:    make(map[Protocol]Adapter),
-		middlewares: make([]Middleware, 0),
+		middlewares: make([]middleware.Middleware, 0),
 	}
 }
 
@@ -82,6 +66,6 @@ func (r *AdapterRegistry) GetAdapter(protocol Protocol) (Adapter, error) {
 	return adapter, nil
 }
 
-func (a *AdapterRegistry) AddMiddleware(middleware Middleware) {
+func (a *AdapterRegistry) AddMiddleware(middleware middleware.Middleware) {
 	a.middlewares = append(a.middlewares, middleware)
 }

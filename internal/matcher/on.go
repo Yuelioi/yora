@@ -1,55 +1,57 @@
 package matcher
 
 import (
+	"yora/internal/depends"
 	"yora/internal/rule"
 )
 
-func On(rule rule.Rule, handlers ...*Handler) *Matcher {
-	return NewMatcher(rule, handlers...)
+func On(rule rule.Rule, handler *Handler) *Matcher {
+	return NewMatcher(rule, handler)
 }
 
 // 事件
-func OnMetaEvent(handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.IsMetaEvent(), handlers...)
+func OnMetaEvent(handler *Handler) *Matcher {
+	return NewMatcher(rule.IsMetaEvent(), handler)
 }
 
-func OnMessage(handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.IsMessageEvent(), handlers...)
+func OnMessage(handler *Handler) *Matcher {
+	return NewMatcher(rule.IsMessageEvent(), handler)
 }
 
-func OnNotice(handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.IsNoticeEvent(), handlers...)
+func OnNotice(handler *Handler) *Matcher {
+	return NewMatcher(rule.IsNoticeEvent(), handler)
 }
 
-func OnRequest(handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.IsRequestEvent(), handlers...)
+func OnRequest(handler *Handler) *Matcher {
+	return NewMatcher(rule.IsRequestEvent(), handler)
 }
 
-func OnCustomEvent(eventName string, handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.IsCustomEvent(eventName), handlers...)
+func OnCustomEvent(eventName string, handler *Handler) *Matcher {
+	return NewMatcher(rule.IsCustomEvent(eventName), handler)
 }
 
 // 命令
-func OnStartsWith(prefix string, handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.StartsWith(prefix), handlers...)
+func OnStartsWith(prefix string, handler *Handler) *Matcher {
+	return NewMatcher(rule.StartsWith(prefix), handler)
 }
 
-func OnEndsWith(suffix string, handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.EndsWith(suffix), handlers...)
+func OnEndsWith(suffix string, handler *Handler) *Matcher {
+	return NewMatcher(rule.EndsWith(suffix), handler)
 }
 
-func OnFullMatch(pattern string, handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.FullMatch(pattern), handlers...)
+func OnFullMatch(pattern string, handler *Handler) *Matcher {
+	return NewMatcher(rule.FullMatch(pattern), handler)
 }
 
-func OnKeyword(keyword string, handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.Keyword(keyword), handlers...)
+func OnKeyword(keyword string, handler *Handler) *Matcher {
+	return NewMatcher(rule.Keyword(keyword), handler)
 }
 
-func OnCommand(cmds []string, caseSensitive bool, handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.Command(caseSensitive, cmds...), handlers...)
+func OnCommand(cmds []string, caseSensitive bool, handler *Handler) *Matcher {
+	handler.RegisterDependent(depends.CommandArgs(cmds))
+	return NewMatcher(rule.Command(caseSensitive, cmds...), handler)
 }
 
-func OnRegex(pattern string, handlers ...*Handler) *Matcher {
-	return NewMatcher(rule.Regex(pattern), handlers...)
+func OnRegex(pattern string, handler *Handler) *Matcher {
+	return NewMatcher(rule.Regex(pattern), handler)
 }

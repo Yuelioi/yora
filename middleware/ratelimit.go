@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	"yora/internal/adapter"
 	"yora/internal/event"
+	"yora/internal/middleware"
 )
 
 // RateLimitMiddleware 频率限制中间件
-func RateLimitMiddleware(maxRequests int, window time.Duration) adapter.Middleware {
+func RateLimitMiddleware(maxRequests int, window time.Duration) middleware.Middleware {
 	type userLimit struct {
 		requests []time.Time
 		mu       sync.Mutex
@@ -18,7 +18,7 @@ func RateLimitMiddleware(maxRequests int, window time.Duration) adapter.Middlewa
 
 	users := sync.Map{}
 
-	return adapter.MiddlewareFunc("频率限制中间件", func(ctx context.Context, e event.Event, next func(ctx context.Context, event event.Event) error) error {
+	return middleware.MiddlewareFunc("频率限制中间件", func(ctx context.Context, e event.Event, next func(ctx context.Context, event event.Event) error) error {
 		var userID string
 		if msgEvent, ok := e.(event.MessageEvent); ok {
 			if msgEvent.Sender().ID() != "" {

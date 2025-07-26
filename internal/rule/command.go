@@ -69,11 +69,6 @@ func Keyword(keywords ...string) Rule {
 func Command(caseSensitive bool, cmds ...string) Rule {
 	return RuleFunc(func(ctx context.Context, e event.Event) bool {
 
-		raw := getRawMessage(e)
-		if raw == "" {
-			return false
-		}
-
 		if msgEvent, ok := e.(event.MessageEvent); ok {
 			message := strings.TrimSpace(msgEvent.RawMessage())
 			if !caseSensitive {

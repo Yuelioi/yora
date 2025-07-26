@@ -5,6 +5,7 @@ import (
 	"yora/internal/matcher"
 	"yora/internal/params"
 	"yora/internal/plugin"
+	"yora/protocols/onebot/depends"
 	"yora/protocols/onebot/event"
 	"yora/protocols/onebot/message"
 )
@@ -20,17 +21,17 @@ type helper struct {
 // Load implements plugin.Plugin.
 func (h *helper) Load() error {
 
-	helpHandler := matcher.NewHandler(h.listplugins)
+	helpHandler := matcher.NewHandler(h.listplugins).RegisterDependent(depends.CommandArgs([]string{"help"}))
 	helpMatcher := matcher.OnCommand([]string{"help"}, true, helpHandler)
 	h.RegisterMatcher(helpMatcher)
 
 	h.SetMetadata(&plugin.Metadata{
 		ID:          "help",
-		Name:        "Help Plugin",
-		Description: "This plugin provides help commands for users",
+		Name:        "帮助插件",
+		Description: "提供帮助信息",
 		Version:     "0.1.0",
-		Author:      "YueLi",
-		Usage:       "help [command]",
+		Author:      "月离",
+		Usage:       "help [插件ID]",
 		Group:       "builtin",
 		Extra:       nil,
 	})

@@ -3,16 +3,15 @@ package event
 import (
 	"strconv"
 	"yora/internal/adapter"
-	"yora/internal/event"
+	basemsg "yora/internal/message"
 )
 
-var _ event.Sender = (*Sender)(nil)
-var _ event.GroupSender = (*GroupSender)(nil)
+var _ basemsg.Sender = (*Sender)(nil)
 
 type Sender struct {
 	UserID   int    `json:"user_id"`
 	Nickname string `json:"nickname"`
-	Card     string `json:"card"`
+	CardStr  string `json:"card"`
 	Sex      string `json:"sex"`
 	Age      int    `json:"age"`
 	Area     string `json:"area"`
@@ -45,7 +44,7 @@ func (s Sender) Username() string {
 
 // DisplayName implements event.Sender.
 func (s Sender) DisplayName() string {
-	return s.Card
+	return s.CardStr
 }
 
 // TODO
@@ -72,16 +71,6 @@ func (s Sender) Raw() any {
 	return s
 }
 
-type GroupSender struct {
-	Sender
-	GroupID int    `json:"group_id"`
-	RoleStr string `json:"role"`
-}
-
-func (s GroupSender) ChatID() string {
-	return strconv.Itoa(s.GroupID)
-}
-
-func (s GroupSender) Role() string {
-	return s.RoleStr
+func (s Sender) Card() string {
+	return s.CardStr
 }
