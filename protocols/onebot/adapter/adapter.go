@@ -115,21 +115,22 @@ func (a *Adapter) ParseEvent(raw any) (event.Event, error) {
 
 }
 
-func (a *Adapter) Send(messageType string, userId string, groupId string, msg message.Message) (any, error) {
+func (a *Adapter) Send(userId string, groupId string, msg message.Message) (any, error) {
 
 	gid, err := strconv.Atoi(groupId)
 	if err != nil {
-		return nil, fmt.Errorf("groupId or userId is not int")
+		gid = 0
 	}
+
 	uid, err := strconv.Atoi(userId)
 	if err != nil {
-		return nil, fmt.Errorf("groupId or userId is not int")
+		uid = 0
 	}
 
-	return a.Client.SendMessage(messageType, uid, gid, msg)
+	return a.Client.SendMessage(uid, gid, msg)
 }
 
-// ParseMessage implements adapter.Adapter.
+// todo ParseMessage implements adapter.Adapter.
 func (a *Adapter) ParseMessage(raw string) ([]message.Segment, error) {
 	var segments []message.Segment
 	return segments, nil

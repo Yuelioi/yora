@@ -18,17 +18,31 @@ import (
 	"yora/internal/bot"
 	"yora/internal/message"
 	onbotAdapter "yora/protocols/onebot/adapter"
+	"yora/protocols/onebot/api"
 )
 
 var _ bot.Bot = (*Bot)(nil)
-var BOT *Bot // 用于注入依赖)
 
-// Bot OneBot 协议机器人实现
+var (
+	b    *Bot
+	once sync.Once
+)
+
+// GetBot 获取机器人实例
+func GetBot() *Bot {
+	once.Do(func() {
+		b = newBot()
+	})
+	return b
+}
+
+// Bot Bot 协议机器人实现
 type Bot struct {
 	logger   zerolog.Logger           // 日志记录器
 	pending  sync.Map                 // 待处理请求映射表
 	registry *adapter.AdapterRegistry // 适配器注册表
 	manager  *plugin.PluginManager    // 插件管理器
+	API      *api.API                 // api 接口
 	server   *http.Server             // HTTP 服务器
 	mu       sync.RWMutex             // 读写锁
 	config   map[string]any           // 配置信息
@@ -36,9 +50,10 @@ type Bot struct {
 }
 
 // NewBot 创建新的机器人实例
-func NewBot() *Bot {
+func newBot() *Bot {
 	logger := log.NewBot("月灵Bot")
 
+	// 基础依赖
 	deps := []depends.Dependent{
 		depends.Ctx(),
 		depends.Event(),
@@ -57,11 +72,12 @@ func NewBot() *Bot {
 		mu:       sync.RWMutex{},
 		config:   make(map[string]any),
 		running:  false,
+		API:      api.GetAPI(),
+		server:   &http.Server{},
 	}
 
 	bot.logger.Info().Msg("机器人实例创建成功")
 
-	BOT = bot
 	return bot
 }
 
@@ -179,7 +195,7 @@ func (b *Bot) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		panic("获取适配器失败")
 	}
 
-	b.logger.Debug().Msg("找到 OneBot 适配器，处理 WebSocket 连接")
+	b.logger.Debug().Msg("找到 Bot 适配器，处理 WebSocket 连接")
 
 	if onebotAdapter, ok := adp.(*onbotAdapter.Adapter); ok {
 		onebotAdapter.Client.HandleWebSocket(w, r, func(message []byte) {
@@ -190,7 +206,7 @@ func (b *Bot) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b.logger.Error().Msg("未找到 OneBot 适配器")
+	b.logger.Error().Msg("未找到 Bot 适配器")
 	http.Error(w, "协议不支持", http.StatusNotFound)
 }
 
@@ -284,7 +300,7 @@ func (b *Bot) CallAPI(params ...any) (any, error) {
 		Interface("参数", apiParams).
 		Msg("调用API")
 
-	// 查找 OneBot 适配器
+	// 查找 Bot 适配器
 	adp, err := b.registry.GetAdapter(adapter.ProtocolOneBot)
 	if err != nil {
 		b.logger.Error().
@@ -293,7 +309,7 @@ func (b *Bot) CallAPI(params ...any) (any, error) {
 		return nil, fmt.Errorf("获取适配器失败: %w", err)
 	}
 
-	b.logger.Debug().Msg("使用 OneBot 适配器调用API")
+	b.logger.Debug().Msg("使用 Bot 适配器调用API")
 
 	result, err := adp.CallAPI(action, apiParams)
 	if err != nil {
@@ -312,19 +328,13 @@ func (b *Bot) CallAPI(params ...any) (any, error) {
 }
 
 // Send 发送消息
-func (b *Bot) Send(messageType string, userId string, groupId string, msg message.Message) (any, error) {
+func (b *Bot) Send(userId string, groupId string, msg message.Message) (any, error) {
 	if msg == nil {
 		b.logger.Error().Msg("发送消息失败：消息内容为空")
 		return nil, fmt.Errorf("消息内容不能为空")
 	}
 
-	if messageType == "" {
-		b.logger.Error().Msg("发送消息失败：消息类型为空")
-		return nil, fmt.Errorf("消息类型不能为空")
-	}
-
 	b.logger.Debug().
-		Str("消息类型", messageType).
 		Str("用户ID", userId).
 		Str("群组ID", groupId).
 		Msg("发送消息")
@@ -337,13 +347,12 @@ func (b *Bot) Send(messageType string, userId string, groupId string, msg messag
 		return nil, fmt.Errorf("获取适配器失败: %w", err)
 	}
 
-	b.logger.Debug().Msg("使用 OneBot 适配器发送消息")
+	b.logger.Debug().Msg("使用 Bot 适配器发送消息")
 
-	result, err := adp.Send(messageType, userId, groupId, msg)
+	result, err := adp.Send(userId, groupId, msg)
 	if err != nil {
 		b.logger.Error().
 			Err(err).
-			Str("消息类型", messageType).
 			Str("用户ID", userId).
 			Str("群组ID", groupId).
 			Msg("消息发送失败")
@@ -351,7 +360,6 @@ func (b *Bot) Send(messageType string, userId string, groupId string, msg messag
 	}
 
 	b.logger.Info().
-		Str("消息类型", messageType).
 		Str("用户ID", userId).
 		Str("群组ID", groupId).
 		Msg("消息发送成功")
@@ -448,18 +456,10 @@ func (b *Bot) publish(raw any, protocol adapter.Protocol) error {
 		Msg("事件解析和验证成功")
 
 	// 构建中间件链
-	handler := func(ctx context.Context, e event.Event) error {
-		return b.manager.Dispatch(ctx, e)
-	}
-
 	middlewares := b.registry.Middlewares()
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		middleware := middlewares[i]
-		next := handler
-		handler = func(ctx context.Context, e event.Event) error {
-			return middleware.Process(ctx, e, next)
-		}
-	}
+	handler := middleware.Chain(b.registry.Middlewares(), func(ctx context.Context, e event.Event) error {
+		return b.manager.Dispatch(ctx, e)
+	})
 
 	b.logger.Debug().
 		Int("中间件数量", len(middlewares)).
@@ -482,6 +482,14 @@ func (b *Bot) publish(raw any, protocol adapter.Protocol) error {
 // AddPlugin 添加插件到管理器
 func (b *Bot) LoadPlugins(plugins ...plugin.Plugin) {
 	for i, p := range plugins {
+		if err := p.Init(); err != nil {
+			b.logger.Error().
+				Err(err).
+				Int("插件索引", i).
+				Msg("插件初始化失败，跳过")
+			continue
+		}
+
 		if err := p.Load(); err != nil {
 			b.logger.Error().
 				Err(err).

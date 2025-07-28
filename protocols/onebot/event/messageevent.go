@@ -2,6 +2,7 @@ package event
 
 import (
 	"strconv"
+	"sync"
 	"yora/internal/event"
 	"yora/protocols/onebot/message"
 
@@ -12,6 +13,8 @@ var _ event.MessageEvent = (*MessageEvent)(nil)
 
 type MessageEvent struct {
 	*Event
+	messageCache basemsg.Message
+	once         sync.Once
 }
 
 func (e *Event) UserID() string {
@@ -33,17 +36,19 @@ func (m *MessageEvent) IsGroup() bool {
 func (m *MessageEvent) IsPrivate() bool {
 	return m.MessageType == "private"
 }
-
-func (e *Event) Message() basemsg.Message {
-	return message.New(e.MessageValue)
+func (m *MessageEvent) Message() basemsg.Message {
+	m.once.Do(func() {
+		m.messageCache = message.New(m.MessageValue)
+	})
+	return m.messageCache
 }
 
-func (e *Event) MessageID() string {
-	return strconv.Itoa(e.MessageIDInt)
+func (m *MessageEvent) MessageID() string {
+	return strconv.Itoa(m.MessageIDInt)
 }
 
-func (e *Event) RawMessage() string {
-	return e.RawMessageValue
+func (m *MessageEvent) RawMessage() string {
+	return m.RawMessageValue
 }
 
 // TODO 获取reply里的at

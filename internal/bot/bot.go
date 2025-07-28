@@ -8,6 +8,7 @@ import (
 )
 
 type Bot interface {
+
 	// 机器人自身ID
 	SelfID() string
 
@@ -15,7 +16,7 @@ type Bot interface {
 	Platform() string
 
 	// 发送消息（通用格式）
-	Send(messageType string, userId string, groupId string, message message.Message) (any, error)
+	Send(userId string, groupId string, message message.Message) (any, error)
 
 	// 调用 API（通用格式）
 	CallAPI(params ...any) (any, error)

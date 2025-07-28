@@ -1,17 +1,17 @@
 {
   "files.exclude": {
-    "**/.git": true,
-    "**/.svn": true,
-    "**/.hg": true,
-    "**/.DS_Store": true,
-    "**/Thumbs.db": true,
-    "Lagrange.OneBot": true,
-    "src/protocols/telegram": true,
-    ".cache": true,
-    "test": true,
-    "middleware": true,
-    ".vscode": true,
-    "internal/log": true
+    "**/.git": false,
+    "**/.svn": false,
+    "**/.hg": false,
+    "**/.DS_Store": false,
+    "**/Thumbs.db": false,
+    "Lagrange.OneBot": false,
+    "src/protocols/telegram": false,
+    ".cache": false,
+    "test": false,
+    "middleware": false,
+    ".vscode": false,
+    "internal/log": false
   },
   "hide-files.files": [
     "Lagrange.OneBot",

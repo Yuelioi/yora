@@ -15,21 +15,13 @@ type BasePlugin struct {
 	hookManager *hook.HookManager
 }
 
-func NewBasePlugin() BasePlugin {
-	return BasePlugin{
-		hookManager: hook.NewHookManager(),
-		matchers:    make([]*matcher.Matcher, 0),
-		metadata:    &Metadata{},
-		config:      NewBaseConfig(),
-	}
-}
-
 // Load implements Plugin.
 func (p *BasePlugin) Load() error {
 	panic("unimplemented")
 }
 
 func (p *BasePlugin) Init() error {
+	p.hookManager = hook.NewHookManager()
 
 	ctx := hook.NewPluginHookContext(context.Background(), hook.PluginBeforeInit, p)
 	if err := p.TriggerHook(hook.PluginBeforeInit, ctx.HookContext); err != nil {
@@ -38,6 +30,7 @@ func (p *BasePlugin) Init() error {
 
 	p.matchers = make([]*matcher.Matcher, 0)
 	p.config = NewBaseConfig()
+	p.metadata = &Metadata{}
 
 	ctx = hook.NewPluginHookContext(context.Background(), hook.PluginAfterInit, p)
 	return p.TriggerHook(hook.PluginAfterInit, ctx.HookContext)

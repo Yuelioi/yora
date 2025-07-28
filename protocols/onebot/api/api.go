@@ -2,23 +2,26 @@ package api
 
 import (
 	"context"
+	"sync"
 	"yora/protocols/onebot/client"
-	"yora/protocols/onebot/client/models"
 )
 
-var c = client.GetClient(context.Background())
+var (
+	once     sync.Once
+	instance *API
+)
 
-// GetPrivateFile 获取私聊文件
-func GetPrivateFile(userID string, fileID string, fileHash string) (*models.GetPrivateFileResponse, error) {
-	req := models.GetPrivateFileRequest{
-		UserID:   userID,
-		FileID:   fileID,
-		FileHash: fileHash,
-	}
-	resp, err := client.Call[models.GetPrivateFileRequest, models.GetPrivateFileResponse](c, "get_private_file", req)
-	if err != nil {
-		return nil, err
-	}
+type API struct {
+	client *client.Client
+}
 
-	return resp, nil
+func newAPI() *API {
+	return &API{client: client.GetClient(context.Background())}
+}
+
+func GetAPI() *API {
+	once.Do(func() {
+		instance = newAPI()
+	})
+	return instance
 }

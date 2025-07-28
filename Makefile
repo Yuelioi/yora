@@ -4,3 +4,6 @@
 
 run:
 	cd Lagrange.OneBot && Lagrange.OneBot.exe
+
+
+.PHONY: test

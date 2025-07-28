@@ -15,10 +15,3 @@ type RuleFunc func(ctx context.Context, event event.Event) bool
 func (f RuleFunc) Match(ctx context.Context, event event.Event) bool {
 	return f(ctx, event)
 }
-
-// todo
-func ToMe() RuleFunc {
-	return func(ctx context.Context, event event.Event) bool {
-		return event.SelfID() == "me"
-	}
-}

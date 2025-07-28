@@ -1,14 +1,12 @@
 package echo
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
-	"yora/internal/bot"
-	"yora/internal/hook"
 	"yora/internal/matcher"
 	basemsg "yora/internal/message"
 	"yora/internal/plugin"
+	"yora/protocols/onebot/bot"
 	"yora/protocols/onebot/event"
 	"yora/protocols/onebot/message"
 )
@@ -19,18 +17,9 @@ type echo struct {
 	plugin.BasePlugin
 }
 
-var Echo *echo
-
-func init() {
-	Echo = plugin.Register(&echo{BasePlugin: plugin.NewBasePlugin()}).
-		WithHook(hook.PluginAfterLoad, func(ctx *hook.HookContext) error {
-			fmt.Println("  -> Echo AfterLoad Hook Triggered")
-			return nil
-		}).Plugin
-}
+var Echo = &echo{}
 
 func (e *echo) Load() error {
-	e.BasePlugin.Load()
 
 	cmdMatcher := matcher.OnCommand([]string{"echo"}, true, matcher.NewHandler(e.echo))
 	e.RegisterMatcher(cmdMatcher)
@@ -49,7 +38,7 @@ func (e *echo) Load() error {
 	return nil
 }
 
-func (e *echo) echo(evt *event.MessageEvent, bot bot.Bot) error {
+func (e *echo) echo(evt *event.MessageEvent, bot *bot.Bot) error {
 	var msgs basemsg.Message = message.NewMessage()
 
 	var echoRegex = regexp.MustCompile(`(?i)echo`)
@@ -72,9 +61,9 @@ func (e *echo) echo(evt *event.MessageEvent, bot bot.Bot) error {
 	}
 
 	if evt.IsGroup() {
-		bot.Send("group", "0", evt.ChatID(), msgs)
+		bot.Send("0", evt.ChatID(), msgs)
 	} else {
-		bot.Send("private", evt.UserID(), "0", msgs)
+		bot.Send(evt.UserID(), "0", msgs)
 	}
 	return nil
 

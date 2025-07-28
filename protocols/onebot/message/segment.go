@@ -2,10 +2,10 @@ package message
 
 import (
 	"encoding/json"
-	basemsg "yora/internal/message"
+	message "yora/internal/message"
 )
 
-var _ basemsg.Segment = (*Segment)(nil)
+var _ message.Segment = (*Segment)(nil)
 
 type Segment struct {
 	TypeStr string         `json:"type"`
@@ -217,7 +217,7 @@ func NewFaceSegment(id string, large bool) Segment {
 }
 
 // NewImageSegment 创建图片片段
-func NewImageSegment(file, filename, url, summary, subType string) Segment {
+func NewImageSegment(file, filename, url, summary string, subType string) Segment {
 	return Segment{
 		TypeStr: "image",
 		DataMap: map[string]any{

@@ -2,11 +2,12 @@ package plugin
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"sync"
 )
+
+var _ Config = (*BaseConfig)(nil)
 
 // BaseConfig 默认配置实现
 type BaseConfig struct {
@@ -59,72 +60,78 @@ func (c *BaseConfig) Get(key string) (any, bool) {
 	return nil, false
 }
 
-func (c *BaseConfig) GetString(key string) (string, error) {
+func (c *BaseConfig) GetString(key string, defaultValue string) string {
 	value, exists := c.Get(key)
 	if !exists {
-		return "", fmt.Errorf("key %s not found", key)
+		return defaultValue
 	}
 
 	if str, ok := value.(string); ok {
-		return str, nil
+		return str
 	}
 
-	return fmt.Sprintf("%v", value), nil
+	return defaultValue
 }
 
-func (c *BaseConfig) GetInt(key string) (int, error) {
+func (c *BaseConfig) GetInt(key string, defaultValue int) int {
 	value, exists := c.Get(key)
 	if !exists {
-		return 0, fmt.Errorf("key %s not found", key)
+		return defaultValue
 	}
 
 	switch v := value.(type) {
 	case int:
-		return v, nil
+		return v
 	case int64:
-		return int(v), nil
+		return int(v)
 	case float64:
-		return int(v), nil
+		return int(v)
 	case string:
-		return strconv.Atoi(v)
+		if v, err := strconv.Atoi(v); err == nil {
+			return v
+		}
+		return defaultValue
 	default:
-		return 0, fmt.Errorf("cannot convert %T to int", value)
+		return defaultValue
 	}
 }
 
-func (c *BaseConfig) GetBool(key string) (bool, error) {
+func (c *BaseConfig) GetBool(key string, defaultValue bool) bool {
 	value, exists := c.Get(key)
 	if !exists {
-		return false, fmt.Errorf("key %s not found", key)
+		return defaultValue
 	}
 
 	switch v := value.(type) {
 	case bool:
-		return v, nil
+		return v
 	case string:
-		return strconv.ParseBool(v)
+		return defaultValue
 	default:
-		return false, fmt.Errorf("cannot convert %T to bool", value)
+		return defaultValue
 	}
 }
 
-func (c *BaseConfig) GetFloat64(key string) (float64, error) {
+func (c *BaseConfig) GetFloat64(key string, defaultValue float64) float64 {
 	value, exists := c.Get(key)
 	if !exists {
-		return 0, fmt.Errorf("key %s not found", key)
+		return defaultValue
 	}
 
 	switch v := value.(type) {
 	case float64:
-		return v, nil
+		return v
 	case int:
-		return float64(v), nil
+		return float64(v)
 	case int64:
-		return float64(v), nil
+		return float64(v)
 	case string:
-		return strconv.ParseFloat(v, 64)
+		if v, err := strconv.ParseFloat(v, 64); err == nil {
+			return v
+		}
+		return defaultValue
 	default:
-		return 0, fmt.Errorf("cannot convert %T to float64", value)
+		return defaultValue
 	}
 }
 
@@ -228,8 +235,8 @@ func (c *BaseConfig) SetDefault(key string, value any) {
 }
 
 func (c *BaseConfig) Validate() error {
-	// 这里可以添加具体的验证逻辑
-	// 比如检查必需的配置项是否存在
+	// 添加具体的验证逻辑
+
 	return nil
 }
 

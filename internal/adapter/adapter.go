@@ -27,7 +27,7 @@ type Adapter interface {
 	CallAPI(action string, params any) (any, error)
 
 	// Send 发送消息
-	Send(messageType string, userId string, groupId string, message message.Message) (any, error)
+	Send(userId string, groupId string, message message.Message) (any, error)
 }
 
 type Registry interface {

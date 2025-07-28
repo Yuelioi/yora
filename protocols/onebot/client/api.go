@@ -8,7 +8,11 @@ import (
 )
 
 // SendMessage 发送消息
-func (c *Client) SendMessage(messageType string, UserId int, GroupId int, message ms.Message) (*models.SendMessageResponse, error) {
+func (c *Client) SendMessage(UserId int, GroupId int, message ms.Message) (*models.SendMessageResponse, error) {
+	messageType := "private"
+	if GroupId != 0 {
+		messageType = "group"
+	}
 
 	req := models.MessageRequest{
 		MessageType: messageType,

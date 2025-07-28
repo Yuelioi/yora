@@ -19,6 +19,9 @@ type Plugin interface {
 	// RegisterMatcher 注册匹配器
 	RegisterMatcher(m *matcher.Matcher)
 
+	// 初始化插件
+	Init() error
+
 	// Load 加载插件
 	Load() error
 
@@ -36,10 +39,11 @@ type Config interface {
 	// 字段操作
 	Set(key string, value any) error
 	Get(key string) (any, bool)
-	GetString(key string) (string, error)
-	GetInt(key string) (int, error)
-	GetBool(key string) (bool, error)
-	GetFloat64(key string) (float64, error)
+
+	GetString(key string, defaultValue string) string
+	GetInt(key string, defaultValue int) int
+	GetBool(key string, defaultValue bool) bool
+	GetFloat64(key string, defaultValue float64) float64
 
 	// 批量操作
 	SetAll(data map[string]any) error

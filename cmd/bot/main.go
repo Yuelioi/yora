@@ -8,7 +8,7 @@ import (
 	"yora/middleware"
 	"yora/plugins/builtin/echo"
 	"yora/plugins/builtin/help"
-	"yora/plugins/community/repeater"
+	"yora/plugins/community/funny"
 	"yora/protocols/onebot/adapter"
 	"yora/protocols/onebot/bot"
 )
@@ -16,7 +16,7 @@ import (
 func main() {
 
 	qqAdapter := adapter.NewAdapter()
-	bot := bot.NewBot()
+	bot := bot.GetBot()
 
 	// 添加中间件
 	bot.AddMiddleware(middleware.LoggingMiddleware()) // 日志
@@ -27,8 +27,8 @@ func main() {
 	bot.RegisterAdapter(qqAdapter)
 
 	// 注册插件
-
-	bot.LoadPlugins(echo.Echo, help.Helper, repeater.Repeater)
+	bot.LoadPlugins(echo.Echo, help.Helper)
+	bot.LoadPlugins(funny.Plugins...)
 
 	// 启动机器人
 	if err := bot.Run(); err != nil {

@@ -64,6 +64,7 @@ func (c *Client) HandleWebSocket(w http.ResponseWriter, r *http.Request, handleR
 	}
 
 	c.conn = conn
+	c.logger.Info().Msg("WebSocket连接已建立")
 
 	// 每次有新连接，就为这个连接启动新的发送和接收循环
 	go c.sendLoop()

@@ -17,16 +17,29 @@ type Matcher struct {
 	Handlers   []*Handler            // 处理器
 }
 
-func (m *Matcher) SetPriority(priority int) {
+func (m *Matcher) SetPriority(priority int) *Matcher {
 	m.Priority = priority
+	return m
 }
 
-func (m *Matcher) SetBlock(block bool) {
+func (m *Matcher) SetBlock(block bool) *Matcher {
 	m.Block = block
+	return m
 }
 
-func (m *Matcher) AppendPermission(permission permission.Permission) {
+func (m *Matcher) AppendRule(rule rule.Rule) *Matcher {
+	m.Rule = condition.All(m.Rule, rule)
+	return m
+}
+
+func (m *Matcher) AppendPermission(permission permission.Permission) *Matcher {
 	m.Permission = condition.Any(m.Permission, permission)
+	return m
+}
+
+func (m *Matcher) AppendHandler(handler *Handler) *Matcher {
+	m.Handlers = append(m.Handlers, handler)
+	return m
 }
 
 func (m *Matcher) Match(ctx context.Context, e event.Event) bool {
@@ -66,8 +79,4 @@ func NewMatcher(rule rule.Rule, handlers ...*Handler) *Matcher {
 		Block:      false,
 		Handlers:   handlers,
 	}
-}
-
-func (m *Matcher) AppendHandler(handler *Handler) {
-	m.Handlers = append(m.Handlers, handler)
 }

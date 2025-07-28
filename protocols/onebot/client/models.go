@@ -8,8 +8,8 @@ type APIRequest struct {
 }
 
 type APIResponse struct {
-	Status  string         `json:"status"`
-	RetCode int            `json:"retcode"`
-	Data    map[string]any `json:"data"`
-	Echo    string         `json:"echo,omitempty"`
+	Status  string `json:"status"`
+	RetCode int    `json:"retcode"`
+	Data    any    `json:"data"`
+	Echo    string `json:"echo,omitempty"`
 }

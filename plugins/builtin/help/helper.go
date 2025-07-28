@@ -71,8 +71,8 @@ func (h *helper) listplugins(bot bot.Bot, event *event.MessageEvent, params *par
 	}
 
 	if event.IsGroup() {
-		bot.Send("group", "0", event.ChatID(), message.New(msgs))
+		bot.Send("0", event.ChatID(), message.New(msgs))
 	} else {
-		bot.Send("private", event.UserID(), "0", message.New(msgs))
+		bot.Send(event.UserID(), "0", message.New(msgs))
 	}
 }

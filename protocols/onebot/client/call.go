@@ -12,6 +12,12 @@ func Call[ReqType any, RespType any](c *Client, action string, req ReqType) (*Re
 	if err != nil {
 		return nil, fmt.Errorf("调用 API %s 失败: %w", action, err)
 	}
+	if apiResp == nil {
+		return nil, fmt.Errorf("API %s 调用失败: 响应为空", action)
+	}
+	// if apiResp.Status != "ok" {
+	// 	return nil, fmt.Errorf("API %s 调用失败: %s", action, apiResp.Status)
+	// }
 
 	// 3. 将通用的 API 响应转换为特定的响应结构体
 	specificResp, err := convertStruct[any, RespType](apiResp)
