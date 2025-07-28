@@ -215,12 +215,12 @@ func (api *API) SetGroupWholeBan(groupID int, enable bool) (*models.Response[any
 // 参数：
 //   - groupID: 群 ID
 //   - file: 头像链接或 Base64 图片
-func (api *API) SetGroupAvatar(groupID int, file string) (*models.Response[any], error) {
-	req := models.SetGroupAvatarRequest{
+func (api *API) SetGroupPortrait(groupID int, file string) (*models.Response[any], error) {
+	req := models.SetGroupPortraitRequest{
 		GroupID: groupID,
 		File:    file,
 	}
-	return client.Call[models.SetGroupAvatarRequest, models.Response[any]](api.client, "set_group_avatar", req)
+	return client.Call[models.SetGroupPortraitRequest, models.Response[any]](api.client, "set_group_portrait", req)
 }
 
 // 设置群表情回复（消息表情）

@@ -4,6 +4,36 @@ import (
 	"yora/internal/message"
 )
 
+type Segment struct {
+	Type string `json:"type"` // 消息段类型
+	Data any    `json:"data"` // 消息段数据
+}
+
+type GroupSender struct {
+	UserID   int    `json:"user_id"`  // 用户ID
+	Nickname string `json:"nickname"` // 昵称
+	Card     string `json:"card"`     // 群名片
+	Sex      string `json:"sex"`      // 性别
+	Age      int    `json:"age"`      // 年龄
+	Area     string `json:"area"`     // 地区
+	Level    string `json:"level"`    // 等级
+	Role     string `json:"role"`     // 角色
+	Title    string `json:"title"`    // 头衔
+}
+
+type GroupMessage struct {
+	MessageTyp string      `json:"message_typ"` // 消息类型
+	SubType    string      `json:"sub_type"`    // 子类型
+	MessageID  int         `json:"message_id"`  // 消息ID
+	GroupID    int         `json:"group_id"`    // 群ID
+	UserID     int         `json:"user_id"`     // 用户ID
+	Anonymous  any         `json:"anonymous"`   // 匿名信息
+	Message    []Segment   `json:"message"`     // 消息内容
+	RawMessage string      `json:"raw_message"` // 原始消息
+	Font       int         `json:"font"`        // 字体
+	Sender     GroupSender `json:"sender"`      // 发送者信息
+}
+
 // 删除精华消息请求
 type DeleteEssenceMessageRequest struct {
 	MessageID int `json:"message_id"` // 消息ID
@@ -24,22 +54,24 @@ type GetEssenceMessageListRequest struct {
 	GroupID int `json:"group_id"` // 群ID
 }
 
+type EssenceMessage struct {
+	Type string `json:"type"` // 消息段类型
+	Data struct {
+		Name string `json:"name"` // 名称
+		Qq   string `json:"qq"`   // QQ号
+	} `json:"data"` // 消息段数据
+}
+
 // 获取精华消息列表响应
 type GetEssenceMessageListResponse = Response[[]struct {
-	SenderID     int    `json:"sender_id"`     // 发送者ID
-	SenderNick   string `json:"sender_nick"`   // 发送者昵称
-	SenderTime   int    `json:"sender_time"`   // 发送时间
-	OperatorID   int    `json:"operator_id"`   // 操作者ID
-	OperatorNick string `json:"operator_nick"` // 操作者昵称
-	OperatorTime int    `json:"operator_time"` // 操作时间
-	MessageID    int    `json:"message_id"`    // 消息ID
-	Content      []struct {
-		Type string `json:"type"` // 消息段类型
-		Data struct {
-			Name string `json:"name"` // 名称
-			Qq   string `json:"qq"`   // QQ号
-		} `json:"data"` // 消息段数据
-	} `json:"content"` // 消息内容
+	SenderID     int              `json:"sender_id"`     // 发送者ID
+	SenderNick   string           `json:"sender_nick"`   // 发送者昵称
+	SenderTime   int              `json:"sender_time"`   // 发送时间
+	OperatorID   int              `json:"operator_id"`   // 操作者ID
+	OperatorNick string           `json:"operator_nick"` // 操作者昵称
+	OperatorTime int              `json:"operator_time"` // 操作时间
+	MessageID    int              `json:"message_id"`    // 消息ID
+	Content      []EssenceMessage `json:"content"`       // 消息内容
 }]
 
 // 获取合并转发消息请求
@@ -74,22 +106,7 @@ type GetFriendChatHistoryRequest struct {
 
 // 获取好友历史聊天记录响应
 type GetFriendChatHistoryResponse = Response[struct {
-	Messages []struct {
-		MessageType string         `json:"message_type"` // 消息类型
-		SubType     string         `json:"sub_type"`     // 子类型
-		MessageID   int            `json:"message_id"`   // 消息ID
-		UserID      int            `json:"user_id"`      // 用户ID
-		Message     map[string]any `json:"message"`      // 消息内容
-		RawMessage  string         `json:"raw_message"`  // 原始消息
-		Font        int            `json:"font"`         // 字体
-		Sender      struct {
-			UserID   int    `json:"user_id"`  // 用户ID
-			Nickname string `json:"nickname"` // 昵称
-			Sex      string `json:"sex"`      // 性别
-			Age      int    `json:"age"`      // 年龄
-		} `json:"sender"` // 发送者信息
-		TargetID int `json:"target_id"` // 目标ID
-	} `json:"messages"` // 消息列表
+	Messages []any `json:"messages"` // 消息列表
 }]
 
 // 获取群历史聊天记录请求
@@ -101,28 +118,7 @@ type GetGroupChatHistoryRequest struct {
 
 // 获取群历史聊天记录响应
 type GetGroupChatHistoryResponse = Response[struct {
-	Messages []struct {
-		MessageTyp string         `json:"message_typ"` // 消息类型
-		SubType    string         `json:"sub_type"`    // 子类型
-		MessageID  int            `json:"message_id"`  // 消息ID
-		GroupID    int            `json:"group_id"`    // 群ID
-		UserID     int            `json:"user_id"`     // 用户ID
-		Anonymous  any            `json:"anonymous"`   // 匿名信息
-		Message    map[string]any `json:"message"`     // 消息内容
-		RawMessage string         `json:"raw_message"` // 原始消息
-		Font       string         `json:"font"`        // 字体
-		Sender     struct {
-			UserID   int    `json:"user_id"`  // 用户ID
-			Nickname string `json:"nickname"` // 昵称
-			Card     string `json:"card"`     // 群名片
-			Sex      string `json:"sex"`      // 性别
-			Age      int    `json:"age"`      // 年龄
-			Area     string `json:"area"`     // 地区
-			Level    string `json:"level"`    // 等级
-			Role     string `json:"role"`     // 角色
-			Title    string `json:"title"`    // 头衔
-		} `json:"sender"` // 发送者信息
-	} `json:"messages"` // 消息列表
+	Messages []GroupMessage `json:"messages"` // 消息列表
 }]
 
 // 获取消息请求
@@ -142,7 +138,7 @@ type GetMessageResponse = Response[struct {
 		Sex      string `json:"sex"`      // 性别
 		Age      int    `json:"age"`      // 年龄
 	} `json:"sender"` // 发送者信息
-	Message map[string]any `json:"message"` // 消息内容
+	Message any `json:"message"` // 消息内容
 }]
 
 // 群里戳一戳请求
@@ -158,20 +154,7 @@ type MarkMessageAsReadRequest struct {
 
 // 构造合并转发消息请求
 type ConstructForwardMessageRequest struct {
-	Messages []struct {
-		Type string `json:"type"` // 消息段类型
-		Data struct {
-			UserID   string `json:"user_id"`  // 用户ID
-			Nickname string `json:"nickname"` // 昵称
-			Content  []struct {
-				Type string `json:"type"` // 消息段类型
-				Data struct {
-					Name string `json:"name"` // 名称
-					Qq   string `json:"qq"`   // QQ号
-				} `json:"data"` // 消息段数据
-			} `json:"content"` // 消息内容
-		} `json:"data"` // 消息段数据
-	} `json:"messages"` // 消息列表
+	Messages []MessageNode `json:"messages"` // 消息列表
 }
 
 // 构造合并转发消息响应
@@ -194,21 +177,8 @@ type SendGroupAIVoiceResponse = Response[struct {
 
 // 发送群聊合并转发消息请求
 type SendGroupForwardMessageRequest struct {
-	GroupID  int `json:"group_id"` // 群ID
-	Messages []struct {
-		Type string `json:"type"` // 消息段类型
-		Data struct {
-			UserID   string `json:"user_id"`  // 用户ID
-			Nickname string `json:"nickname"` // 昵称
-			Content  []struct {
-				Type string `json:"type"` // 消息段类型
-				Data struct {
-					Name string `json:"name"` // 名称
-					Qq   string `json:"qq"`   // QQ号
-				} `json:"data"` // 消息段数据
-			} `json:"content"` // 消息内容
-		} `json:"data"` // 消息段数据
-	} `json:"messages"` // 消息列表
+	GroupID  int           `json:"group_id"` // 群ID
+	Messages []MessageNode `json:"messages"` // 消息列表
 }
 
 // 发送群聊合并转发消息响应
@@ -224,9 +194,9 @@ type SendGroupMessageResponse = Response[struct {
 
 // 发送消息请求
 type SendMessageRequest struct {
-	MessageType string         `json:"message_type"` // 消息类型
-	UserID      int            `json:"user_id"`      // 用户ID
-	Message     map[string]any `json:"message"`      // 消息内容
+	MessageType string `json:"message_type"` // 消息类型
+	UserID      int    `json:"user_id"`      // 用户ID
+	Message     any    `json:"message"`      // 消息内容
 }
 
 // 发送消息响应
@@ -236,21 +206,8 @@ type SendMessageResponse = Response[struct {
 
 // 发送私聊合并转发消息请求
 type SendPrivateForwardMessageRequest struct {
-	UserID   int `json:"user_id"` // 用户ID
-	Messages []struct {
-		Type string `json:"type"` // 消息段类型
-		Data struct {
-			UserID   string `json:"user_id"`  // 用户ID
-			Nickname string `json:"nickname"` // 昵称
-			Content  []struct {
-				Type string `json:"type"` // 消息段类型
-				Data struct {
-					Name string `json:"name"` // 名称
-					Qq   string `json:"qq"`   // QQ号
-				} `json:"data"` // 消息段数据
-			} `json:"content"` // 消息内容
-		} `json:"data"` // 消息段数据
-	} `json:"messages"` // 消息列表
+	UserID   int           `json:"user_id"`  // 用户ID
+	Messages []MessageNode `json:"messages"` // 消息列表
 }
 
 // 发送私聊合并转发消息响应
@@ -266,8 +223,8 @@ type SetEssenceMessageRequest struct {
 
 // 发送私聊消息请求
 type SendPrivateMessageRequest struct {
-	UserID  int            `json:"user_id"` // 用户ID
-	Message map[string]any `json:"message"` // 消息内容
+	UserID  int             `json:"user_id"` // 用户ID
+	Message message.Message `json:"message"` // 消息内容
 }
 
 // 发送私聊消息响应

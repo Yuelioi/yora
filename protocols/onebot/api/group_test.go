@@ -110,8 +110,14 @@ func TestGetGroupHonorInfo(t *testing.T) {
 
 // 5. 设置群管理员测试
 func TestSetGroupAdmin(t *testing.T) {
-	// 跳过会影响实际群管理的测试
-	t.Skip("跳过设置群管理员测试，避免影响群管理")
+	h := NewGroupTestHelper(t)
+
+	h.t.Skip("跳过设置群管理员测试 需要群主权限")
+	groupID := GID
+	userID := TID
+
+	resp, err := h.api.SetGroupAdmin(groupID, userID, true)
+	h.StatusOk(resp, err, "设置群管理员")
 }
 
 // 6. 设置群成员禁言测试
@@ -255,7 +261,7 @@ func TestSetGroupWholeBan(t *testing.T) {
 }
 
 // 15. 设置群头像测试
-func TestSetGroupAvatar(t *testing.T) {
+func TestSetGroupPortrait(t *testing.T) {
 	h := NewGroupTestHelper(t)
 	groupID := GID
 
@@ -266,7 +272,7 @@ func TestSetGroupAvatar(t *testing.T) {
 
 	file := "data:image/jpeg;base64," + imageBase64
 
-	resp, err := h.api.SetGroupAvatar(groupID, file)
+	resp, err := h.api.SetGroupPortrait(groupID, file)
 	h.StatusOk(resp, err, "设置群头像")
 
 	t.Logf("设置群头像成功，群ID: %d", groupID)

@@ -155,7 +155,7 @@ type SetGroupWholeBanRequest struct {
 }
 
 // 设置群头像请求
-type SetGroupAvatarRequest struct {
+type SetGroupPortraitRequest struct {
 	GroupID int    `json:"group_id"` // 群 ID
 	File    string `json:"file"`     // 头像文件链接
 }

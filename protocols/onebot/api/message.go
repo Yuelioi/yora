@@ -27,7 +27,7 @@ func (api *API) PrivatePoke(userID int) (*models.Response[any], error) {
 	req := models.PrivatePokeRequest{
 		UserID: userID,
 	}
-	return client.Call[models.PrivatePokeRequest, models.Response[any]](api.client, "private_poke", req)
+	return client.Call[models.PrivatePokeRequest, models.Response[any]](api.client, "friend_poke", req)
 }
 
 // 获取精华消息列表
@@ -55,7 +55,7 @@ func (api *API) GetFriendChatHistory(userID int, messageID int, count int) (*mod
 		MessageID: messageID,
 		Count:     count,
 	}
-	return client.Call[models.GetFriendChatHistoryRequest, models.GetFriendChatHistoryResponse](api.client, "get_friend_chat_history", req)
+	return client.Call[models.GetFriendChatHistoryRequest, models.GetFriendChatHistoryResponse](api.client, "get_friend_msg_history", req)
 
 }
 
@@ -66,7 +66,7 @@ func (api *API) GetGroupChatHistory(groupID int, messageID string, count int) (*
 		MessageID: messageID,
 		Count:     count,
 	}
-	return client.Call[models.GetGroupChatHistoryRequest, models.GetGroupChatHistoryResponse](api.client, "get_group_chat_history", req)
+	return client.Call[models.GetGroupChatHistoryRequest, models.GetGroupChatHistoryResponse](api.client, "get_group_msg_history", req)
 
 }
 
@@ -97,20 +97,7 @@ func (api *API) MarkMessageAsRead(messageID int) (*models.Response[any], error) 
 }
 
 // 构造合并转发消息
-func (api *API) ConstructForwardMessage(messages []struct {
-	Type string `json:"type"`
-	Data struct {
-		UserID   string `json:"user_id"`
-		Nickname string `json:"nickname"`
-		Content  []struct {
-			Type string `json:"type"`
-			Data struct {
-				Name string `json:"name"`
-				Qq   string `json:"qq"`
-			} `json:"data"`
-		} `json:"content"`
-	} `json:"data"`
-}) (*models.ConstructForwardMessageResponse, error) {
+func (api *API) ConstructForwardMessage(messages []models.MessageNode) (*models.ConstructForwardMessageResponse, error) {
 	req := models.ConstructForwardMessageRequest{
 		Messages: messages,
 	}
@@ -131,20 +118,7 @@ func (api *API) SendGroupAIVoice(character string, groupID int, text string, cha
 }
 
 // 发送群聊合并转发消息
-func (api *API) SendGroupForwardMessage(groupID int, messages []struct {
-	Type string `json:"type"`
-	Data struct {
-		UserID   string `json:"user_id"`
-		Nickname string `json:"nickname"`
-		Content  []struct {
-			Type string `json:"type"`
-			Data struct {
-				Name string `json:"name"`
-				Qq   string `json:"qq"`
-			} `json:"data"`
-		} `json:"content"`
-	} `json:"data"`
-}) (*models.SendGroupForwardMessageResponse, error) {
+func (api *API) SendGroupForwardMessage(groupID int, messages []models.MessageNode) (*models.SendGroupForwardMessageResponse, error) {
 	req := models.SendGroupForwardMessageRequest{
 		GroupID:  groupID,
 		Messages: messages,
@@ -171,20 +145,7 @@ func (api *API) SendMessage(userID int, GroupId int, message message.Message) (*
 }
 
 // 发送私聊合并转发消息
-func (api *API) SendPrivateForwardMessage(userID int, messages []struct {
-	Type string `json:"type"`
-	Data struct {
-		UserID   string `json:"user_id"`
-		Nickname string `json:"nickname"`
-		Content  []struct {
-			Type string `json:"type"`
-			Data struct {
-				Name string `json:"name"`
-				Qq   string `json:"qq"`
-			} `json:"data"`
-		} `json:"content"`
-	} `json:"data"`
-}) (*models.SendPrivateForwardMessageResponse, error) {
+func (api *API) SendPrivateForwardMessage(userID int, messages []models.MessageNode) (*models.SendPrivateForwardMessageResponse, error) {
 	req := models.SendPrivateForwardMessageRequest{
 		UserID:   userID,
 		Messages: messages,
@@ -202,7 +163,7 @@ func (api *API) SetEssenceMessage(messageID int) (*models.Response[any], error) 
 }
 
 // 发送私聊消息
-func (api *API) SendPrivateMessage(userID int, message map[string]any) (*models.SendPrivateMessageResponse, error) {
+func (api *API) SendPrivateMessage(userID int, message message.Message) (*models.SendPrivateMessageResponse, error) {
 	req := models.SendPrivateMessageRequest{
 		UserID:  userID,
 		Message: message,

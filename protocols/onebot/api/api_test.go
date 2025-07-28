@@ -82,7 +82,7 @@ func (h *TestHelper) StatusOk(resp any, err error, messages ...any) {
 
 	assert.Equal(h.t, "ok", statusField.String(), messages...)
 	assert.Equal(h.t, 0, int(retcodeField.Int()), messages...)
-	messages = append([]any{fmt.Sprintf("测试 %s", h.t.Name())}, messages...)
+	messages = append([]any{fmt.Sprintf("测试 %s 成功", h.t.Name())}, messages...)
 	h.t.Log(messages...)
 }
 

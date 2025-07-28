@@ -1,12 +1,12 @@
-package event
+package message
 
 import (
 	"strconv"
 	"yora/internal/adapter"
-	basemsg "yora/internal/message"
+	"yora/internal/message"
 )
 
-var _ basemsg.Sender = (*Sender)(nil)
+var _ message.Sender = (*Sender)(nil)
 
 type Sender struct {
 	UserID   int    `json:"user_id"`

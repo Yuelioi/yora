@@ -3,16 +3,21 @@ package client
 import (
 	"fmt"
 	"time"
+	"yora/internal/log"
 )
 
 func Call[ReqType any, RespType any](c *Client, action string, req ReqType) (*RespType, error) {
 
+	l := log.NewAPI("Call")
+
 	// 2. 调用 c.CallAPI 发送请求
 	apiResp, err := c.CallAPI(action, req)
 	if err != nil {
+		l.Error().Err(err).Msgf("调用 API %s 失败", action)
 		return nil, fmt.Errorf("调用 API %s 失败: %w", action, err)
 	}
 	if apiResp == nil {
+		l.Error().Msgf("API %s 调用失败: 响应为空", action)
 		return nil, fmt.Errorf("API %s 调用失败: 响应为空", action)
 	}
 	// if apiResp.Status != "ok" {
@@ -22,6 +27,7 @@ func Call[ReqType any, RespType any](c *Client, action string, req ReqType) (*Re
 	// 3. 将通用的 API 响应转换为特定的响应结构体
 	specificResp, err := convertStruct[any, RespType](apiResp)
 	if err != nil {
+		l.Error().Err(err).Msgf("转换 API %s 响应失败", action)
 		return nil, fmt.Errorf("转换 API %s 响应失败: %w", action, err)
 	}
 

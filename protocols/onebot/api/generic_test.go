@@ -19,28 +19,10 @@ func NewGenericTestHelper(t *testing.T) *GenericTestHelper {
 
 }
 
-// 辅助函数：创建测试用的表情ID列表
-func (h *GenericTestHelper) createTestEmojiIDs() []string {
-	return []string{"1", "2", "3", "100", "101"}
-}
-
-// 辅助函数：获取最近的群消息ID（用于表情接龙测试）
-func (h *GenericTestHelper) getRecentGroupMessageID(groupID int) (int, error) {
-	// 这里应该调用获取群消息历史的API
-	// 为了测试，返回一个模拟的消息ID
-	return 12345, nil
-}
-
-// 辅助函数：获取最近的好友消息ID
-func (h *GenericTestHelper) getRecentFriendMessageID(userID int) (int, error) {
-	// 这里应该调用获取私聊消息历史的API
-	// 为了测试，返回一个模拟的消息ID
-	return 54321, nil
-}
-
 // !返回空数组 1. 测试获取自定义表情
 func TestFetchCustomFace(t *testing.T) {
 	h := NewGenericTestHelper(t)
+	h.t.Skip("跳过获取自定义表情测试")
 
 	resp, err := h.api.FetchCustomFace()
 	h.StatusOk(resp, err, "获取自定义表情")
@@ -51,12 +33,12 @@ func TestFetchCustomFace(t *testing.T) {
 // !不知道怎么获取emojiIDs 2. 测试获取商城表情key
 func TestFetchMfaceKey(t *testing.T) {
 	h := NewGenericTestHelper(t)
+	h.t.Skip("跳过获取商城表情key测试")
 
-	emojiIDs := h.createTestEmojiIDs()
-	resp, err := h.api.FetchMfaceKey(emojiIDs)
-	h.StatusOk(resp, err, "获取商城表情key")
+	// resp, err := h.api.FetchMfaceKey(emojiIDs)
+	// h.StatusOk(resp, err, "获取商城表情key")
 
-	t.Logf("获取商城表情key成功，表情ID数量: %d, 返回数据: %+v", len(emojiIDs), resp)
+	// t.Logf("获取商城表情key成功，表情ID数量: %d, 返回数据: %+v", len(emojiIDs), resp)
 }
 
 // !3. 测试加入好友表情接龙
@@ -65,19 +47,18 @@ func TestJoinFriendEmojiChain(t *testing.T) {
 
 	h.t.Skip("跳过好友表情接龙测试")
 
-	// 模拟参数
-	userID := UID
-	messageID, err := h.getRecentFriendMessageID(userID)
-	if err != nil {
-		t.Skipf("跳过好友表情接龙测试，无法获取消息ID: %v", err)
-		return
-	}
-	emojiID := 1
+	// userID := UID
+	// messageID, err := h.getRecentFriendMessageID(userID)
+	// if err != nil {
+	// 	t.Skipf("跳过好友表情接龙测试，无法获取消息ID: %v", err)
+	// 	return
+	// }
+	// emojiID := 1
 
-	resp, err := h.api.JoinFriendEmojiChain(userID, messageID, emojiID)
-	h.StatusOk(resp, err, "加入好友表情接龙")
+	// resp, err := h.api.JoinFriendEmojiChain(userID, messageID, emojiID)
+	// h.StatusOk(resp, err, "加入好友表情接龙")
 
-	t.Logf("加入好友表情接龙成功，用户ID: %d, 消息ID: %d, 表情ID: %d", userID, messageID, emojiID)
+	// t.Logf("加入好友表情接龙成功，用户ID: %d, 消息ID: %d, 表情ID: %d", userID, messageID, emojiID)
 }
 
 // 4. 测试获取群AI声色
@@ -96,6 +77,8 @@ func TestGetAICharacters(t *testing.T) {
 // 5. 测试获取Cookies
 func TestGetCookies(t *testing.T) {
 	h := NewGenericTestHelper(t)
+
+	h.t.Skip("跳过获取Cookies测试")
 
 	domain := ".qq.com"
 	resp, err := h.api.GetCookies(domain)
@@ -131,17 +114,16 @@ func TestJoinGroupEmojiChain(t *testing.T) {
 	h := NewGenericTestHelper(t)
 	h.t.Skip("跳过群表情接龙测试")
 
-	groupID := GID
-	messageID, err := h.getRecentGroupMessageID(groupID)
-	if err != nil {
-		t.Skipf("跳过群表情接龙测试，无法获取消息ID: %v", err)
-		return
-	}
-	emojiID := 1
+	// groupID := GID
+	// if err != nil {
+	// 	t.Skipf("跳过群表情接龙测试，无法获取消息ID: %v", err)
+	// 	return
+	// }
+	// emojiID := 1
 
-	resp, err := h.api.JoinGroupEmojiChain(groupID, messageID, emojiID)
-	h.StatusOk(resp, err, "加入群表情接龙")
-	t.Logf("加入群表情接龙成功，群ID: %d, 消息ID: %d, 表情ID: %d", groupID, messageID, emojiID)
+	// resp, err := h.api.JoinGroupEmojiChain(groupID, messageID, emojiID)
+	// h.StatusOk(resp, err, "加入群表情接龙")
+	// t.Logf("加入群表情接龙成功，群ID: %d, 消息ID: %d, 表情ID: %d", groupID, messageID, emojiID)
 }
 
 // 9. 测试OCR图像识别

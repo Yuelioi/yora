@@ -4,26 +4,27 @@ import (
 	"strconv"
 	"time"
 	"yora/internal/event"
+	"yora/protocols/onebot/message"
 )
 
 var _ event.Event = (*Event)(nil)
 
 // OneBot消息结构体
 type Event struct {
-	UserIDInt       int          `json:"user_id"`
-	Anonymous       any          `json:"anonymous"`
-	RawMessageValue string       `json:"raw_message"`
-	Font            int          `json:"font"`
-	SelfIDInt       int          `json:"self_id"`
-	PostType        PostType     `json:"post_type"`
-	MessageType     MessageType  `json:"message_type"`
-	SubTypeValue    SubType      `json:"sub_type"`
-	MessageIDInt    int          `json:"message_id"`
-	GroupIDInt      int          `json:"group_id"`
-	MessageValue    any          `json:"message"`
-	SenderValue     *Sender      `json:"sender"`
-	MessageStyle    MessageStyle `json:"message_style"`
-	TimeStamp       int          `json:"time"`
+	UserIDInt       int             `json:"user_id"`
+	Anonymous       any             `json:"anonymous"`
+	RawMessageValue string          `json:"raw_message"`
+	Font            int             `json:"font"`
+	SelfIDInt       int             `json:"self_id"`
+	PostType        PostType        `json:"post_type"`
+	MessageType     MessageType     `json:"message_type"`
+	SubTypeValue    SubType         `json:"sub_type"`
+	MessageIDInt    int             `json:"message_id"`
+	GroupIDInt      int             `json:"group_id"`
+	MessageValue    any             `json:"message"`
+	SenderValue     *message.Sender `json:"sender"`
+	MessageStyle    MessageStyle    `json:"message_style"`
+	TimeStamp       int             `json:"time"`
 }
 
 func (e *Event) Raw() any {
