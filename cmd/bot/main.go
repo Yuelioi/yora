@@ -5,30 +5,35 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"yora/adapters/onebot/adapter"
 	"yora/middleware"
+	"yora/pkg/bot"
+	"yora/pkg/conf"
 	"yora/plugins/builtin/echo"
 	"yora/plugins/builtin/help"
-	"yora/plugins/community/funny"
-	"yora/protocols/onebot/adapter"
-	"yora/protocols/onebot/bot"
+	"yora/plugins/yueling/funny"
+
+	"github.com/rs/zerolog"
 )
 
 func main() {
+	// 设置日志
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 	qqAdapter := adapter.NewAdapter()
-	bot := bot.GetBot()
+	bot := bot.NewBot(conf.NewBotConfig())
 
 	// 添加中间件
-	bot.AddMiddleware(middleware.LoggingMiddleware()) // 日志
-	bot.AddMiddleware(middleware.RecoveryMiddleware())
-	bot.AddMiddleware(middleware.RateLimitMiddleware(10, 1*time.Minute)) // 频率限制
+	bot.RegisterMiddlewares(middleware.LoggingMiddleware()) // 日志
+	bot.RegisterMiddlewares(middleware.RecoveryMiddleware())
+	bot.RegisterMiddlewares(middleware.RateLimitMiddleware(10, 1*time.Minute)) // 频率限制
 
 	// 注册适配器
-	bot.RegisterAdapter(qqAdapter)
+	bot.RegisterAdapters(qqAdapter)
 
 	// 注册插件
-	bot.LoadPlugins(echo.Echo, help.Helper)
-	bot.LoadPlugins(funny.Plugins...)
+	bot.RegisterPlugins(echo.New(), help.New())
+	bot.RegisterPlugins(funny.Plugins...)
 
 	// 启动机器人
 	if err := bot.Run(); err != nil {

@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 	"runtime/debug"
-	"yora/internal/event"
-	"yora/internal/log"
-	"yora/internal/middleware"
+	"yora/pkg/event"
+	"yora/pkg/log"
+	"yora/pkg/middleware"
 )
 
 var loggerRecover = log.NewMiddleware("PANIC 中间件")
 
 func RecoveryMiddleware() middleware.Middleware {
-	return middleware.MiddlewareFunc("panic中间件", func(ctx context.Context, event event.Event, next func(ctx context.Context, event event.Event) error) error {
+	return middleware.MiddlewareFunc("panic中间件", func(ctx context.Context, event event.Event, next middleware.HandlerFunc) error {
 		defer func() {
 			if r := recover(); r != nil {
 				var errMsg string

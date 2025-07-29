@@ -3,43 +3,48 @@ package echo
 import (
 	"regexp"
 	"strings"
-	"yora/internal/matcher"
-	basemsg "yora/internal/message"
-	"yora/internal/plugin"
-	"yora/protocols/onebot/bot"
-	"yora/protocols/onebot/event"
-	"yora/protocols/onebot/message"
+	"time"
+	"yora/adapters/onebot/event"
+	"yora/adapters/onebot/message"
+	"yora/pkg/bot"
+	"yora/pkg/handler"
+	"yora/pkg/on"
+	"yora/pkg/plugin"
 )
 
 var _ plugin.Plugin = (*echo)(nil)
+
+var pluginMeta = plugin.Metadata{
+	ID:          "echo",
+	Name:        "Echo",
+	Description: "重复发送消息",
+	Version:     "0.1.0",
+	Author:      "月离",
+	Usage:       "echo <message>",
+	Extra:       make(map[string]any),
+	Group:       "builtin",
+}
+
+func New() plugin.Plugin {
+	return &echo{}
+}
 
 type echo struct {
 	plugin.BasePlugin
 }
 
-var Echo = &echo{}
-
 func (e *echo) Load() error {
 
-	cmdMatcher := matcher.OnCommand([]string{"echo"}, true, matcher.NewHandler(e.echo))
+	cmdMatcher := on.OnCommand([]string{"echo"}, true, handler.NewHandler(e.echo)).SetPlugin(e)
 	e.RegisterMatcher(cmdMatcher)
 
-	e.SetMetadata(&plugin.Metadata{
-		ID:          "echo",
-		Name:        "Echo",
-		Description: "重复发送消息",
-		Version:     "0.1.0",
-		Author:      "月离",
-		Usage:       "echo <message>",
-		Extra:       make(map[string]any),
-		Group:       "builtin",
-	})
+	e.SetMetadata(&pluginMeta)
 
 	return nil
 }
 
-func (e *echo) echo(evt *event.MessageEvent, bot *bot.Bot) error {
-	var msgs basemsg.Message = message.NewMessage()
+func (e *echo) echo(evt *event.MessageEvent, bot bot.Bot) error {
+	var msgs = message.NewMessage()
 
 	var echoRegex = regexp.MustCompile(`(?i)echo`)
 
@@ -59,7 +64,7 @@ func (e *echo) echo(evt *event.MessageEvent, bot *bot.Bot) error {
 	if msgs.IsEmpty() {
 		return nil
 	}
-
+	time.Sleep(time.Second * 5)
 	if evt.IsGroup() {
 		bot.Send("0", evt.ChatID(), msgs)
 	} else {

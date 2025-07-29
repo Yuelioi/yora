@@ -1,4 +1,4 @@
-package manager
+package poke
 
 import (
 	"yora/adapters/onebot/event"
@@ -31,7 +31,7 @@ type pluginDemo struct {
 }
 
 func (e *pluginDemo) Load() error {
-	cmdMatcher := on.OnCommand([]string{"echo"}, true, handler.NewHandler(e.echo))
+	cmdMatcher := on.OnNotice(handler.NewHandler(e.echo))
 
 	e.RegisterMatcher(cmdMatcher)
 

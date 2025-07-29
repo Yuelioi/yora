@@ -1,18 +1,32 @@
 package help
 
 import (
-	"yora/internal/bot"
-	"yora/internal/matcher"
-	"yora/internal/params"
-	"yora/internal/plugin"
-	"yora/protocols/onebot/depends"
-	"yora/protocols/onebot/event"
-	"yora/protocols/onebot/message"
+	"yora/adapters/onebot/depends"
+	"yora/adapters/onebot/event"
+	"yora/adapters/onebot/message"
+	"yora/pkg/bot"
+	"yora/pkg/handler"
+	"yora/pkg/on"
+	"yora/pkg/params"
+	"yora/pkg/plugin"
 )
 
 var _ plugin.Plugin = (*helper)(nil)
 
-var Helper = &helper{}
+var pluginMeta = &plugin.Metadata{
+	ID:          "help",
+	Name:        "帮助插件",
+	Description: "提供帮助信息",
+	Version:     "0.1.0",
+	Author:      "月离",
+	Usage:       "help [插件ID]",
+	Group:       "builtin",
+	Extra:       nil,
+}
+
+func New() plugin.Plugin {
+	return &helper{}
+}
 
 type helper struct {
 	plugin.BasePlugin
@@ -21,20 +35,11 @@ type helper struct {
 // Load implements plugin.Plugin.
 func (h *helper) Load() error {
 
-	helpHandler := matcher.NewHandler(h.listplugins).RegisterDependent(depends.CommandArgs([]string{"help"}))
-	helpMatcher := matcher.OnCommand([]string{"help"}, true, helpHandler)
+	helpHandler := handler.NewHandler(h.listplugins).RegisterDependent(depends.CommandArgs([]string{"help"}))
+	helpMatcher := on.OnCommand([]string{"help"}, true, helpHandler).SetPlugin(h)
 	h.RegisterMatcher(helpMatcher)
 
-	h.SetMetadata(&plugin.Metadata{
-		ID:          "help",
-		Name:        "帮助插件",
-		Description: "提供帮助信息",
-		Version:     "0.1.0",
-		Author:      "月离",
-		Usage:       "help [插件ID]",
-		Group:       "builtin",
-		Extra:       nil,
-	})
+	h.SetMetadata(pluginMeta)
 
 	return nil
 }

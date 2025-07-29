@@ -11,7 +11,8 @@
     "test": false,
     "middleware": false,
     ".vscode": false,
-    "internal/log": false
+    "internal/log": false,
+    "assets": false
   },
   "hide-files.files": [
     "Lagrange.OneBot",
@@ -20,12 +21,14 @@
     "test",
     "middleware",
     ".vscode",
-    "internal/log"
+    "internal/log",
+    "assets"
   ],
   "cSpell.words": [
     "botcontext",
     "onebot",
     "pluginmanager",
-    "qqmatcher"
+    "qqmatcher",
+    "yora"
   ]
 }
