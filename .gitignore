@@ -3,6 +3,8 @@
 *.so
 
 .git
+__debug*
+*.exe*
 
 .cache
 

@@ -3,10 +3,10 @@ package plugin
 import (
 	"context"
 	"yora/pkg/condition"
-	"yora/pkg/depends"
 	"yora/pkg/event"
 	"yora/pkg/handler"
 	"yora/pkg/permission"
+	"yora/pkg/provider"
 	"yora/pkg/rule"
 )
 
@@ -73,7 +73,7 @@ func (m *Matcher) Match(ctx context.Context, e event.Event) bool {
 	return true
 }
 
-func (m *Matcher) Call(ctx context.Context, e event.Event, deps ...depends.Dependent) error {
+func (m *Matcher) Call(ctx context.Context, e event.Event, provs ...provider.Provider) error {
 	for _, h := range m.Handlers {
 		if err := h.Call(ctx, e); err != nil {
 			return err

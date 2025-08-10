@@ -1,19 +1,19 @@
-package event
+package events
 
 import (
 	"strconv"
 	"sync"
-	"yora/adapters/onebot/message"
+	"yora/adapters/onebot/messages"
 	"yora/pkg/event"
 
-	basemsg "yora/pkg/message"
+	"yora/pkg/message"
 )
 
 var _ event.MessageEvent = (*MessageEvent)(nil)
 
 type MessageEvent struct {
 	*Event
-	messageCache basemsg.Message
+	messageCache message.Message
 	once         sync.Once
 }
 
@@ -36,9 +36,9 @@ func (m *MessageEvent) IsGroup() bool {
 func (m *MessageEvent) IsPrivate() bool {
 	return m.MessageType == "private"
 }
-func (m *MessageEvent) Message() basemsg.Message {
+func (m *MessageEvent) Message() message.Message {
 	m.once.Do(func() {
-		m.messageCache = message.New(m.MessageValue)
+		m.messageCache = messages.New(m.MessageValue)
 	})
 	return m.messageCache
 }
@@ -64,7 +64,7 @@ func (m *MessageEvent) ReplyTo() string {
 }
 
 // Sender implements event.MessageEvent.
-func (m *MessageEvent) Sender() basemsg.Sender {
+func (m *MessageEvent) Sender() message.Sender {
 	return m.SenderValue
 }
 

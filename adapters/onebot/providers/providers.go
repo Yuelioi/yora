@@ -1,19 +1,19 @@
-package depends
+package providers
 
 import (
 	"context"
 	"fmt"
 	"strings"
-	onebotEvent "yora/adapters/onebot/event"
-	"yora/pkg/depends"
+	"yora/adapters/onebot/events"
 	"yora/pkg/event"
 	"yora/pkg/params"
+	"yora/pkg/provider"
 )
 
 // 获取 onebot 的 message 事件
-func OnebotEvent() depends.Dependent {
-	return depends.DependentFunc(func(ctx context.Context, e event.Event) any {
-		if e2, ok := e.(*onebotEvent.Event); ok {
+func OnebotEvent() provider.Provider {
+	return provider.DynamicProvider(func(ctx context.Context, e event.Event) any {
+		if e2, ok := e.(*events.Event); ok {
 			return e2
 		}
 
@@ -21,16 +21,9 @@ func OnebotEvent() depends.Dependent {
 	})
 }
 
-// 获取配置
-// func Config() event.Handler {
-// 	return event.DependencyFunc[*conf.BotConfig](func(ec *event.EventContext) (*conf.BotConfig, error) {
-// 		return conf.GetBotConfig(), nil
-// 	})
-// }
-
-func CommandArgs(cmds []string) depends.Dependent {
-	return depends.DependentFunc(func(ctx context.Context, e event.Event) any {
-		msgEvent, ok := e.(*onebotEvent.MessageEvent)
+func CommandArgs(cmds []string) provider.Provider {
+	return provider.DynamicProvider(func(ctx context.Context, e event.Event) any {
+		msgEvent, ok := e.(*events.MessageEvent)
 		if !ok {
 			panic(fmt.Sprintf("message event is not onebot event: %T", e))
 		}
@@ -82,9 +75,9 @@ func CommandArgs(cmds []string) depends.Dependent {
 }
 
 // 获取用户信息
-func UserInfo() depends.Dependent {
-	return depends.DependentFunc(func(ctx context.Context, e event.Event) any {
-		if msgEvent, ok := e.(*onebotEvent.MessageEvent); ok {
+func UserInfo() provider.Provider {
+	return provider.DynamicProvider(func(ctx context.Context, e event.Event) any {
+		if msgEvent, ok := e.(*events.MessageEvent); ok {
 			return &UInfo{
 				UID:      msgEvent.Sender().ID(),
 				Nickname: msgEvent.Sender().Username(),

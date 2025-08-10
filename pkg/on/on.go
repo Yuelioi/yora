@@ -1,9 +1,9 @@
 package on
 
 import (
-	"yora/pkg/depends"
 	"yora/pkg/handler"
 	"yora/pkg/plugin"
+	"yora/pkg/provider"
 	"yora/pkg/rule"
 )
 
@@ -50,7 +50,7 @@ func OnKeyword(keyword string, handler *handler.Handler) *plugin.Matcher {
 }
 
 func OnCommand(cmds []string, caseSensitive bool, handler *handler.Handler) *plugin.Matcher {
-	handler.RegisterDependent(depends.CommandArgs(cmds))
+	handler.RegisterProviders(provider.CommandArgs(cmds))
 	return plugin.NewMatcher(rule.Command(caseSensitive, cmds...), handler)
 }
 

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-	"yora/pkg/depends"
 	"yora/pkg/event"
+	"yora/pkg/provider"
 )
 
 // TODO
@@ -14,10 +14,21 @@ import (
 
 // 是全局依赖注入管理器（负责依赖匹配与缓存）
 type HandlerRegistry struct {
-	mu              sync.RWMutex
-	deps            []depends.Dependent            // 所有可注入依赖提供者（插件/系统注册）
-	paramTypesMap   map[uintptr][]reflect.Type     // handlerID -> 参数类型列表（用于调试/辅助）
+	mu sync.RWMutex
+
+	// 静态依赖（全局单例）
+	staticDeps map[reflect.Type]any
+
+	// 动态依赖
+	dynamicProviders []provider.Provider // （插件/系统注册）
+
+	// 工厂函数（每次创建新实例）
+	factories map[reflect.Type]func(ctx context.Context, e event.Event) any
+
 	typedDepsValues map[reflect.Type]reflect.Value // 缓存：类型 -> 构造出的值（当前事件周期有效）
+
+	paramTypesMap map[uintptr][]reflect.Type // handlerID -> 参数类型列表（用于调试/辅助）
+
 }
 
 var (
@@ -29,10 +40,14 @@ var (
 func GetHandlerRegistry() *HandlerRegistry {
 	once.Do(func() {
 		h = &HandlerRegistry{
-			paramTypesMap:   make(map[uintptr][]reflect.Type),
-			typedDepsValues: make(map[reflect.Type]reflect.Value),
+			paramTypesMap:    make(map[uintptr][]reflect.Type),
+			typedDepsValues:  make(map[reflect.Type]reflect.Value),
+			staticDeps:       make(map[reflect.Type]any),
+			factories:        make(map[reflect.Type]func(ctx context.Context, e event.Event) any),
+			dynamicProviders: make([]provider.Provider, 0),
 		}
 	})
+
 	return h
 }
 
@@ -43,9 +58,25 @@ func (r *HandlerRegistry) ResetCache() {
 	r.typedDepsValues = make(map[reflect.Type]reflect.Value)
 }
 
-// 注册依赖提供者
-func (r *HandlerRegistry) RegisterDependent(providers ...depends.Dependent) *HandlerRegistry {
-	r.deps = append(r.deps, providers...)
+func (r *HandlerRegistry) RegisterProviders(providers ...provider.Provider) *HandlerRegistry {
+	for _, pro := range providers {
+		switch p := pro.(type) {
+		case provider.StaticProvider:
+
+			v := pro.Provide(context.Background(), nil)
+			if v == nil {
+				continue
+			}
+			vt := reflect.TypeOf(v)
+			vv := reflect.ValueOf(v)
+			r.staticDeps[vt] = vv
+		case provider.DynamicProvider:
+			r.dynamicProviders = append(r.dynamicProviders, p)
+		default:
+			// 默认当作动态处理
+			r.dynamicProviders = append(r.dynamicProviders, p)
+		}
+	}
 	return r
 }
 
@@ -65,6 +96,16 @@ func (r *HandlerRegistry) BuildTypedValues(id uintptr, paramTypes []reflect.Type
 		r.typedDepsValues = make(map[reflect.Type]reflect.Value)
 	}
 
+	// 注入静态依赖
+	for t, pro := range r.staticDeps {
+		if _, exists := r.typedDepsValues[t]; exists {
+			continue // 已构建，跳过
+		}
+		v := reflect.ValueOf(pro)
+		r.typedDepsValues[t] = v
+	}
+
+	// 注入动态依赖
 	for _, t := range paramTypes {
 		if _, exists := r.typedDepsValues[t]; exists {
 			continue // 已构建，跳过
@@ -94,8 +135,8 @@ func (r *HandlerRegistry) GetTypedDependency(t reflect.Type) (reflect.Value, err
 
 // 根据类型查找并返回匹配的依赖
 func (r *HandlerRegistry) findMatchingDependencyValue(t reflect.Type, ctx context.Context, e event.Event) (reflect.Value, error) {
-	for _, dep := range r.deps {
-		v := dep.Provide(ctx, e)
+	for _, pro := range r.dynamicProviders {
+		v := pro.Provide(ctx, e)
 		if v == nil {
 			continue
 		}

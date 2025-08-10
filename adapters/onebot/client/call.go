@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-	"yora/adapters/onebot/message"
+	"yora/adapters/onebot/messages"
 	"yora/adapters/onebot/models"
 	"yora/pkg/log"
 )
@@ -38,7 +38,7 @@ func Call[ReqType any, RespType any](c *Client, action string, req ReqType) (*Re
 }
 
 // 发送消息
-func (c *Client) Send(userID int, GroupId int, message message.Message) (*models.SendMessageResponse, error) {
+func (c *Client) Send(userID int, GroupId int, message messages.Message) (*models.SendMessageResponse, error) {
 	messageType := "private"
 	if GroupId != 0 {
 		messageType = "group"

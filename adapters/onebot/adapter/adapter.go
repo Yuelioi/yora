@@ -8,20 +8,18 @@ import (
 	"slices"
 	"strconv"
 	"yora/adapters/onebot/client"
-	onebotMessage "yora/adapters/onebot/message"
+	"yora/adapters/onebot/messages"
 	"yora/pkg/adapter"
-	"yora/pkg/depends"
 	"yora/pkg/event"
 	"yora/pkg/message"
 
-	onebotEvent "yora/adapters/onebot/event"
+	"yora/adapters/onebot/events"
 )
 
 var _ adapter.Adapter = (*Adapter)(nil)
 
 type Adapter struct {
-	baseDeps []depends.Dependent
-	Client   *client.Client
+	Client *client.Client
 }
 
 // HandleWebSocket implements adapter.Adapter.
@@ -41,7 +39,7 @@ func (a *Adapter) Send(userId string, groupId string, message message.Message) (
 	if err != nil {
 		gid = 0
 	}
-	msg, ok := message.(onebotMessage.Message)
+	msg, ok := message.(messages.Message)
 	if !ok {
 		return nil, fmt.Errorf("message 类型应为 message.Message，实际为 %T", message)
 	}
@@ -54,12 +52,11 @@ func (a *Adapter) CallAPI(action string, params any) (any, error) {
 	return a.Client.CallAPI(action, params)
 }
 
-func NewAdapter(baseDeps ...depends.Dependent) *Adapter {
+func NewAdapter() *Adapter {
 
 	ctx := context.Background()
 	return &Adapter{
-		Client:   client.GetClient(ctx),
-		baseDeps: baseDeps,
+		Client: client.GetClient(ctx),
 	}
 }
 
@@ -116,25 +113,25 @@ func (a *Adapter) ParseEvent(raw any) (event.Event, error) {
 
 	switch base.Type {
 	case "message":
-		var e onebotEvent.MessageEvent
+		var e events.MessageEvent
 		if err := json.Unmarshal(data, &e); err != nil {
 			return nil, fmt.Errorf("解析 MessageEvent 失败: %w", err)
 		}
 		return &e, nil
 	case "notice":
-		var e onebotEvent.NoticeEvent
+		var e events.NoticeEvent
 		if err := json.Unmarshal(data, &e); err != nil {
 			return nil, fmt.Errorf("解析 NoticeEvent 失败: %w", err)
 		}
 		return &e, nil
 	case "meta_event":
-		var e onebotEvent.MetaEvent
+		var e events.MetaEvent
 		if err := json.Unmarshal(data, &e); err != nil {
 			return nil, fmt.Errorf("解析 MetaEvent 失败: %w", err)
 		}
 		return &e, nil
 	case "request":
-		var e onebotEvent.RequestEvent
+		var e events.RequestEvent
 		if err := json.Unmarshal(data, &e); err != nil {
 			return nil, fmt.Errorf("解析 RequestEvent 失败: %w", err)
 		}

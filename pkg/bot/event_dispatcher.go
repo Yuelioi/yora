@@ -3,26 +3,43 @@ package bot
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
-	"yora/pkg/depends"
+	"yora/pkg/adapter"
 	"yora/pkg/event"
+	"yora/pkg/handler"
 	"yora/pkg/log"
 	"yora/pkg/middleware"
 	"yora/pkg/plugin"
+	"yora/pkg/provider"
 
 	"github.com/rs/zerolog"
 )
 
+// 事件分发器
 type EventDispatcher struct {
-	eventQueue  chan EventWrapper
 	middlewares []middleware.Middleware
 	logger      zerolog.Logger
 	mr          *plugin.MatcherRegistry
 	mu          sync.RWMutex
 	stats       EventStats
+
+	// 事件队列
+	shutdownCh chan struct{}
+	eventQueue chan EventWrapper
 }
 
+// 事件包装器
+type EventWrapper struct {
+	Event    event.Event
+	Adapter  adapter.Adapter
+	Protocol adapter.Protocol
+	RawData  []byte
+	RecvTime time.Time
+}
+
+// 事件统计信息
 type EventStats struct {
 	TotalEvents   int64
 	SuccessEvents int64
@@ -32,11 +49,20 @@ type EventStats struct {
 }
 
 func NewEventDispatcher() *EventDispatcher {
-	return &EventDispatcher{
-		eventQueue: make(chan EventWrapper, 100),
-		mr:         plugin.GetMatcherRegistry(),
-		logger:     log.NewMatcher("event_dispatcher"),
+
+	ed := &EventDispatcher{
+		eventQueue:  make(chan EventWrapper, 100),
+		mr:          plugin.GetMatcherRegistry(),
+		logger:      log.NewMatcher("event_dispatcher"),
+		middlewares: make([]middleware.Middleware, 0),
+		stats:       EventStats{},
+		shutdownCh:  make(chan struct{}),
 	}
+
+	go ed.startEventLoop()
+
+	return ed
+
 }
 
 func (ed *EventDispatcher) RegisterMiddlewares(middlewares ...middleware.Middleware) error {
@@ -52,6 +78,138 @@ func (ed *EventDispatcher) RegisterMiddlewares(middlewares ...middleware.Middlew
 	return nil
 }
 
+// 为每个适配器处理连接
+func (ed *EventDispatcher) HandleAdapterConnection(w http.ResponseWriter, r *http.Request, a adapter.Adapter, p adapter.Protocol) {
+	a.HandleWebSocket(w, r, func(message []byte) {
+		go func() {
+			if err := ed.processRawMessage(message, a, p); err != nil {
+				ed.logger.Error().
+					Err(err).
+					Str("协议", string(p)).
+					Msg("处理 WebSocket 消息失败")
+			}
+		}()
+	})
+}
+
+// 处理原始消息
+func (ed *EventDispatcher) processRawMessage(raw []byte, a adapter.Adapter, protocol adapter.Protocol) error {
+	if len(raw) == 0 {
+		return fmt.Errorf("原始数据不能为空")
+	}
+
+	// b.logger.Debug().
+	// 	Str("协议", string(protocol)).
+	// 	Int("数据长度", len(raw)).
+	// 	Msg("开始处理原始消息")
+
+	// 解析事件
+	evt, err := a.ParseEvent(raw)
+	if err != nil {
+		ed.logger.Error().
+			Err(err).
+			Str("协议", string(protocol)).
+			Msg("事件解析失败")
+		return fmt.Errorf("事件解析失败: %w", err)
+	}
+
+	// 忽略元事件
+	if evt.Type() == "meta_event" {
+		return nil
+	}
+
+	// 验证事件
+	if err := a.ValidateEvent(evt); err != nil {
+		ed.logger.Error().
+			Err(err).
+			Str("协议", string(protocol)).
+			Str("事件类型", fmt.Sprintf("%T", evt)).
+			Msg("事件验证失败")
+		return fmt.Errorf("事件验证失败: %w", err)
+	}
+
+	// 包装事件并放入队列
+	wrapper := EventWrapper{
+		Event:    evt,
+		Adapter:  a,
+		Protocol: protocol,
+		RawData:  raw,
+		RecvTime: time.Now(),
+	}
+
+	select {
+	case ed.eventQueue <- wrapper:
+		ed.logger.Debug().
+			Str("协议", string(protocol)).
+			Str("事件类型", fmt.Sprintf("%T", evt)).
+			Msg("事件已加入处理队列")
+	case <-time.After(time.Second): // 避免无限阻塞
+		ed.logger.Warn().
+			Str("事件类型", fmt.Sprintf("%T", evt)).
+			Msg("事件处理队列已满，丢弃事件")
+		return fmt.Errorf("事件队列已满")
+	}
+
+	return nil
+}
+
+// 处理事件包装器
+func (ed *EventDispatcher) handleEventWrapper(wrapper EventWrapper) {
+	startTime := time.Now()
+
+	ed.logger.Debug().
+		Str("协议", string(wrapper.Protocol)).
+		Str("事件类型", fmt.Sprintf("%T", wrapper.Event)).
+		Msg("开始处理事件")
+
+	// 设置动态依赖注入
+	provs := []provider.Provider{
+		provider.Ctx(),
+		provider.Event(),
+		provider.MessageEvent(),
+		provider.MetaEvent(),
+		provider.RequestEvent(),
+		provider.NoticeEvent(),
+		BotProvider(),
+	}
+
+	handler.GetHandlerRegistry().ResetCache()
+	handler.GetHandlerRegistry().RegisterProviders(provs...)
+
+	// 通过分发器处理事件
+	ctx := context.WithValue(context.Background(), "adapter", wrapper.Adapter)
+	ctx = context.WithValue(ctx, "protocol", wrapper.Protocol)
+
+	if err := ed.DispatchEvent(ctx, wrapper.Event); err != nil {
+		ed.logger.Error().
+			Err(err).
+			Str("事件类型", fmt.Sprintf("%T", wrapper.Event)).
+			Msg("事件分发失败")
+	}
+
+	duration := time.Since(startTime)
+	ed.logger.Debug().
+		Str("协议", string(wrapper.Protocol)).
+		Str("事件类型", fmt.Sprintf("%T", wrapper.Event)).
+		Dur("处理时长", duration).
+		Msg("事件处理完成")
+}
+
+// 启动事件处理循环
+func (ed *EventDispatcher) startEventLoop() {
+	ed.logger.Info().Msg("启动事件处理器")
+
+	for {
+		select {
+		case wrapper := <-ed.eventQueue:
+			ed.handleEventWrapper(wrapper)
+		case <-ed.shutdownCh:
+			ed.logger.Debug().Msg("事件处理worker关闭")
+			return
+		}
+	}
+}
+
 // 构建中间件链
 func (ed *EventDispatcher) buildMiddlewareChain() func(ctx context.Context, event event.Event) error {
 	ed.mu.RLock()
@@ -60,7 +218,8 @@ func (ed *EventDispatcher) buildMiddlewareChain() func(ctx context.Context, even
 	ed.mu.RUnlock()
 
 	return middleware.Chain(middlewares, func(ctx context.Context, e event.Event) error {
-		return ed.dispatchToMatchers(ctx, e)
+		go ed.dispatchToMatchers(ctx, e)
+		return nil
 	})
 }
 
@@ -145,10 +304,4 @@ func (ed *EventDispatcher) DispatchEvent(ctx context.Context, e event.Event) err
 	}
 
 	return err
-}
-
-func getBotDependent() depends.Dependent {
-	return depends.DependentFunc(func(ctx context.Context, e event.Event) any {
-		return GetBot()
-	})
 }

@@ -2,7 +2,7 @@
 //
 // 核心功能：
 //   - 使用 NewHandler 构造并注册事件处理器
-//   - 使用 RegisterDependent 方法注入函数依赖
+//   - 使用 RegisterProvider 方法注入函数依赖
 //   - 使用 Call 方法执行并注入上下文和依赖参数
 //
 // 本包适用于构建具有自动依赖注入能力的事件驱动系统。
@@ -12,8 +12,8 @@ package handler
 import (
 	"context"
 	"reflect"
-	"yora/pkg/depends"
 	"yora/pkg/event"
+	"yora/pkg/provider"
 )
 
 // 事件处理函数
@@ -55,8 +55,8 @@ func NewHandler(fn any) *Handler {
 }
 
 // 注册依赖到注册中心
-func (h *Handler) RegisterDependent(deps ...depends.Dependent) *Handler {
-	GetHandlerRegistry().RegisterDependent(deps...)
+func (h *Handler) RegisterProviders(provs ...provider.Provider) *Handler {
+	GetHandlerRegistry().RegisterProviders(provs...)
 	return h
 }
 

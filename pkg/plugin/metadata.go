@@ -1,7 +1,7 @@
 package plugin
 
-// Metadata 插件元数据
-type Metadata struct {
+// PluginInfo 插件信息
+type PluginInfo struct {
 	ID          string         // 插件标识(必填)
 	Name        string         // 插件显示名称(必填)
 	Description string         // 插件描述

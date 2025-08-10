@@ -1,8 +1,8 @@
 package chat
 
 import (
-	"yora/adapters/onebot/event"
-	"yora/adapters/onebot/rule"
+	"yora/adapters/onebot/events"
+	"yora/adapters/onebot/rules"
 	"yora/pkg/bot"
 	"yora/pkg/handler"
 	"yora/pkg/on"
@@ -12,18 +12,14 @@ import (
 var _ plugin.Plugin = (*chat)(nil)
 
 type chat struct {
-	plugin.BasePlugin
 }
 
 func New() plugin.Plugin {
 	return &chat{}
 }
 
-func (c *chat) Load() error {
-	handler := handler.NewHandler(c.chat)
-	m := on.OnMessage(handler).AppendRule(rule.ToMe())
-
-	c.SetMetadata(&plugin.Metadata{
+func (c *chat) PluginInfo() *plugin.PluginInfo {
+	return &plugin.PluginInfo{
 		ID:          "chat",
 		Name:        "Chat",
 		Description: "Chat with other users",
@@ -33,14 +29,18 @@ func (c *chat) Load() error {
 		Examples:    []string{"chat hello", "chat hi"},
 		Group:       "funny",
 		Extra:       map[string]any{},
-	})
-
-	c.RegisterMatcher(m)
-
-	return nil
+	}
 }
 
-func (c *chat) chat(bot bot.Bot, event *event.MessageEvent) error {
+func (c *chat) Matchers() []*plugin.Matcher {
+	handler := handler.NewHandler(c.chat)
+	m := on.OnMessage(handler).AppendRule(rules.ToMe())
+	return []*plugin.Matcher{
+		m,
+	}
+}
+
+func (c *chat) chat(bot bot.Bot, event *events.MessageEvent) error {
 
 	// _, err := bot..Send("", event.ChatID(), ms)
 	// if err != nil {

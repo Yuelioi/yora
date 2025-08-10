@@ -13,7 +13,7 @@ type Component string
 
 const (
 	MiddlewareComponent      Component = "middleware"
-	DependComponent          Component = "depend"
+	ProviderComponent        Component = "provider"
 	BotComponent             Component = "bot"
 	APIComponent             Component = "api"
 	PluginRegistryComponent  Component = "plugin_registry"
@@ -85,7 +85,7 @@ type ComponentTheme struct {
 func getComponentTheme(component Component) ComponentTheme {
 	themes := map[Component]ComponentTheme{
 		MiddlewareComponent:     {"🌉", "\x1b[97m"},  // 白色
-		DependComponent:         {"📦", "\x1b[90m"},  // 灰色
+		ProviderComponent:       {"📦", "\x1b[90m"},  // 灰色
 		BotComponent:            {"🚀", "\x1b[94m"},  // 蓝色
 		APIComponent:            {"🔌", "\x1b[96m"},  // 青色
 		PluginRegistryComponent: {"🎛️", "\x1b[95m"}, // 紫色
@@ -133,8 +133,8 @@ func NewMiddleware(name string) zerolog.Logger {
 	return New(MiddlewareComponent, name)
 }
 
-func NewDepend(name string) zerolog.Logger {
-	return New(DependComponent, name)
+func NewProvider(name string) zerolog.Logger {
+	return New(ProviderComponent, name)
 }
 
 func NewBot(name string) zerolog.Logger {

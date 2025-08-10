@@ -16,6 +16,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var _ Bot = (*botImpl)(nil)
+
 var (
 	b    Bot
 	once sync.Once
@@ -42,14 +44,11 @@ type botImpl struct {
 	pending         sync.Map                 // 待处理请求映射表
 	adapterRegistry *adapter.AdapterRegistry // 适配器注册表
 	dispatcher      *EventDispatcher         // 事件分派器
-	manager         *plugin.PluginRegistry   // 插件管理器
+	pluginManager   *plugin.PluginRegistry   // 插件管理器
 	server          *http.Server             // HTTP 服务器
 	mu              sync.RWMutex             // 读写锁
 	running         bool                     // 运行状态
 
-	// 事件队列
-	shutdownCh chan struct{}
-	eventQueue chan EventWrapper
 }
 
 func newBot(conf *conf.BotConfig) *botImpl {
@@ -57,12 +56,11 @@ func newBot(conf *conf.BotConfig) *botImpl {
 		config:          conf,
 		logger:          log.NewBot("yora"),
 		adapterRegistry: adapter.NewAdapterRegistry(),
-		manager:         plugin.GetPluginRegistry(),
+		pluginManager:   plugin.GetPluginRegistry(),
 		pending:         sync.Map{},
 		server:          &http.Server{},
 		dispatcher:      NewEventDispatcher(),
 		running:         false,
-		eventQueue:      make(chan EventWrapper, 100),
 	}
 
 	b.logger.Info().Msg("创建机器人")
@@ -143,7 +141,7 @@ func (b *botImpl) Platform() string {
 }
 
 func (b *botImpl) Plugins() []plugin.Plugin {
-	return b.manager.Plugins()
+	return b.pluginManager.Plugins()
 }
 
 func (b *botImpl) RegisterAdapters(adapters ...adapter.Adapter) error {
@@ -174,7 +172,7 @@ func (b *botImpl) RegisterAdapters(adapters ...adapter.Adapter) error {
 }
 
 func (b *botImpl) RegisterPlugins(plugins ...plugin.Plugin) error {
-	b.manager.RegisterPlugins(plugins...)
+	b.pluginManager.RegisterPlugins(plugins...)
 	return nil
 
 }
@@ -257,8 +255,6 @@ func (b *botImpl) Run() error {
 
 	b.logger.Info().Str("地址", b.server.Addr).Msg("启动 HTTP 服务器")
 
-	b.startEventLoop(10)
-
 	// 启动服务器
 	go func() {
 		if err := b.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -300,7 +296,7 @@ func (b *botImpl) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	// 为每个适配器创建单独的处理逻辑
 	for protocol, adapter := range b.adapterRegistry.Adapters() {
-		b.handleAdapterConnection(w, r, adapter, protocol)
+		b.dispatcher.HandleAdapterConnection(w, r, adapter, protocol)
 	}
 }
 
@@ -318,22 +314,11 @@ func (b *botImpl) ShutDown() error {
 
 	// 关闭插件
 	b.logger.Info().Msg("卸载插件...")
-	plugins := b.manager.Plugins()
-	unloadErrors := make([]error, 0)
 
-	for _, p := range plugins {
-		metadata := p.Metadata()
-		b.logger.Debug().Str("插件名", metadata.Name).Msg("正在卸载插件")
-
-		if err := p.Unload(); err != nil {
-			b.logger.Error().
-				Err(err).
-				Str("插件名", metadata.Name).
-				Msg("插件卸载失败")
-			unloadErrors = append(unloadErrors, fmt.Errorf("插件 %s 卸载失败: %w", metadata.Name, err))
-		} else {
-			b.logger.Info().Str("插件名", metadata.Name).Msg("插件卸载成功")
-		}
+	err := b.pluginManager.Unload()
+	if err != nil {
+		b.logger.Error().Err(err).Msg("插件卸载失败")
+		return fmt.Errorf("插件卸载失败: %w", err)
 	}
 
 	// 关闭 HTTP 服务器
@@ -353,11 +338,6 @@ func (b *botImpl) ShutDown() error {
 
 	b.running = false
 	b.logger.Info().Msg("机器人服务关闭完成")
-
-	// 如果有插件卸载错误，返回第一个错误
-	if len(unloadErrors) > 0 {
-		return unloadErrors[0]
-	}
 
 	return nil
 }

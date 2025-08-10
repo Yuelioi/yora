@@ -10,6 +10,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type MatcherRegistrar interface {
+	RegisterMatchers(ms ...*Matcher)
+	UnregisterMatchers(ms *Matcher)
+}
+
+var _ MatcherRegistrar = (*MatcherRegistry)(nil)
+
 var (
 	once            sync.Once
 	matcherRegistry *MatcherRegistry
@@ -45,6 +52,17 @@ func (mr *MatcherRegistry) RegisterMatchers(ms ...*Matcher) {
 	sort.Slice(mr.matchers, func(i, j int) bool {
 		return mr.matchers[i].Priority < mr.matchers[j].Priority
 	})
+}
+func (mr *MatcherRegistry) UnregisterMatchers(ms *Matcher) {
+	mr.mu.Lock()
+	defer mr.mu.Unlock()
+
+	for i, m := range mr.matchers {
+		if m == ms {
+			mr.matchers = append(mr.matchers[:i], mr.matchers[i+1:]...)
+			break
+		}
+	}
 }
 
 // 匹配事件并缓存匹配到的matcher

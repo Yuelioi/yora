@@ -2,14 +2,14 @@ package models
 
 import (
 	"encoding/json"
-	"yora/adapters/onebot/message"
+	"yora/adapters/onebot/messages"
 )
 
 // 节点数据结构
 type NodeData struct {
-	UserID   string            `json:"user_id"`
-	Nickname string            `json:"nickname"`
-	Content  []message.Segment `json:"content"`
+	UserID   string             `json:"user_id"`
+	Nickname string             `json:"nickname"`
+	Content  []messages.Segment `json:"content"`
 }
 
 // 消息节点结构
@@ -35,7 +35,7 @@ func NewNodeData(userID, nickname string) NodeData {
 	return NodeData{
 		UserID:   userID,
 		Nickname: nickname,
-		Content:  make([]message.Segment, 0),
+		Content:  make([]messages.Segment, 0),
 	}
 }
 
@@ -98,7 +98,7 @@ func (m *ForwardMessages) AddNode(userID, nickname string) *ForwardMessages {
 }
 
 // 为最后一个节点添加内容
-func (m *ForwardMessages) AddContentToLast(content message.Segment) *ForwardMessages {
+func (m *ForwardMessages) AddContentToLast(content messages.Segment) *ForwardMessages {
 	if len(m.Messages) > 0 {
 		lastIdx := len(m.Messages) - 1
 		m.Messages[lastIdx].Data.Content = append(m.Messages[lastIdx].Data.Content, content)

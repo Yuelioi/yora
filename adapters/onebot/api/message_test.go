@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"yora/adapters/onebot/message"
+	"yora/adapters/onebot/messages"
 	"yora/adapters/onebot/models"
 )
 
@@ -23,7 +23,7 @@ func NewMessageTestHelper(t *testing.T) *MessageTestHelper {
 
 // 发送群消息并获取消息ID
 func (h *MessageTestHelper) sendGroupMessageAndGetID() (int, func()) {
-	resp, err := h.api.SendMessage(0, GID, message.New("测试消息"))
+	resp, err := h.api.SendMessage(0, GID, messages.New("测试消息"))
 	h.StatusOk(resp, err, "发送群消息")
 
 	// 等待消息发送成功
@@ -40,7 +40,7 @@ func (h *MessageTestHelper) sendGroupMessageAndGetID() (int, func()) {
 
 // 发送私聊消息并获取消息ID
 func (h *MessageTestHelper) sendPrivateMessageAndGetID() (int, func()) {
-	resp, err := h.api.SendMessage(UID, 0, message.New("测试消息"))
+	resp, err := h.api.SendMessage(UID, 0, messages.New("测试消息"))
 	h.StatusOk(resp, err, "发送私聊消息")
 
 	time.Sleep(time.Second * 3)
@@ -210,11 +210,11 @@ func TestConstructForwardMessage(t *testing.T) {
 	// 测试数据
 	h.t.Skip("构造合并转发消息接口有异常")
 
-	messages := models.NewMessages()
-	messages.AddNode(strconv.Itoa(UID), "张三").AddContentToLast(message.NewAtSegment(strconv.Itoa(TID)))
+	msgs := models.NewMessages()
+	msgs.AddNode(strconv.Itoa(UID), "张三").AddContentToLast(messages.NewAtSegment(strconv.Itoa(TID)))
 
 	// 执行测试
-	resp, err := h.api.ConstructForwardMessage(messages.Messages)
+	resp, err := h.api.ConstructForwardMessage(msgs.Messages)
 
 	// 验证结果
 	h.StatusOk(resp, err, "构造合并转发消息应该成功")
@@ -246,11 +246,11 @@ func TestSendGroupForwardMessage(t *testing.T) {
 	// 测试数据
 	groupID := GID
 
-	messages := models.NewMessages()
-	messages.AddNode(strconv.Itoa(UID), "张三").AddContentToLast(message.NewAtSegment(strconv.Itoa(TID)))
+	msgs := models.NewMessages()
+	msgs.AddNode(strconv.Itoa(UID), "张三").AddContentToLast(messages.NewAtSegment(strconv.Itoa(TID)))
 
 	// 执行测试
-	resp, err := h.api.SendGroupForwardMessage(groupID, messages.Messages)
+	resp, err := h.api.SendGroupForwardMessage(groupID, msgs.Messages)
 
 	// 验证结果
 	h.StatusOk(resp, err, "发送群聊合并转发消息应该成功")
@@ -264,7 +264,7 @@ func TestSendMessage(t *testing.T) {
 	// 测试数据
 	userID := UID
 	groupID := GID
-	msg := message.NewMessageBuilder().Append(message.NewAtSegment(strconv.Itoa(TID))).Append(message.NewAtSegment(strconv.Itoa(UID)))
+	msg := messages.NewMessageBuilder().Append(messages.NewAtSegment(strconv.Itoa(TID))).Append(messages.NewAtSegment(strconv.Itoa(UID)))
 
 	// 执行测试
 	resp, err := h.api.SendMessage(userID, groupID, msg)
@@ -280,11 +280,11 @@ func TestSendPrivateForwardMessage(t *testing.T) {
 
 	// 测试数据
 	userID := UID
-	messages := models.NewMessages()
-	messages.AddNode(strconv.Itoa(UID), "张三").AddContentToLast(message.NewAtSegment(strconv.Itoa(TID)))
+	msgs := models.NewMessages()
+	msgs.AddNode(strconv.Itoa(UID), "张三").AddContentToLast(messages.NewAtSegment(strconv.Itoa(TID)))
 
 	// 执行测试
-	resp, err := h.api.SendPrivateForwardMessage(userID, messages.Messages)
+	resp, err := h.api.SendPrivateForwardMessage(userID, msgs.Messages)
 
 	// 验证结果
 	h.StatusOk(resp, err, "发送私聊合并转发消息应该成功")
@@ -313,7 +313,7 @@ func TestSendPrivateMessage(t *testing.T) {
 	userID := UID
 
 	// 执行测试
-	resp, err := h.api.SendPrivateMessage(userID, message.New("测试"))
+	resp, err := h.api.SendPrivateMessage(userID, messages.New("测试"))
 
 	// 验证结果
 	h.StatusOk(resp, err, "发送私聊消息应该成功")

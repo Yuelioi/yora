@@ -1,19 +1,19 @@
 package help
 
 import (
-	"yora/adapters/onebot/depends"
-	"yora/adapters/onebot/event"
-	"yora/adapters/onebot/message"
+	"yora/adapters/onebot/events"
+	"yora/adapters/onebot/messages"
 	"yora/pkg/bot"
 	"yora/pkg/handler"
 	"yora/pkg/on"
 	"yora/pkg/params"
 	"yora/pkg/plugin"
+	"yora/pkg/provider"
 )
 
 var _ plugin.Plugin = (*helper)(nil)
 
-var pluginMeta = &plugin.Metadata{
+var pluginMeta = &plugin.PluginInfo{
 	ID:          "help",
 	Name:        "帮助插件",
 	Description: "提供帮助信息",
@@ -29,33 +29,32 @@ func New() plugin.Plugin {
 }
 
 type helper struct {
-	plugin.BasePlugin
 }
 
-// Load implements plugin.Plugin.
-func (h *helper) Load() error {
-
-	helpHandler := handler.NewHandler(h.listplugins).RegisterDependent(depends.CommandArgs([]string{"help"}))
+func (h *helper) Matchers() []*plugin.Matcher {
+	helpHandler := handler.NewHandler(h.listPlugins).RegisterProviders(provider.CommandArgs([]string{"help"}))
 	helpMatcher := on.OnCommand([]string{"help"}, true, helpHandler).SetPlugin(h)
-	h.RegisterMatcher(helpMatcher)
 
-	h.SetMetadata(pluginMeta)
+	return []*plugin.Matcher{helpMatcher}
 
-	return nil
 }
 
-// Metadata implements plugin.Plugin.
+func (h *helper) PluginInfo() *plugin.PluginInfo {
+	return pluginMeta
+}
 
-func (h *helper) listplugins(bot bot.Bot, event *event.MessageEvent, params *params.CommandArgs) {
+// PluginInfo implements plugin.Plugin.
+
+func (h *helper) listPlugins(bot bot.Bot, event *events.MessageEvent, params *params.CommandArgs) {
 	plugins := bot.Plugins()
 	// 基于 group 分组
 
 	filtered := make(map[string][]plugin.Plugin)
 	for _, p := range plugins {
-		if p.Metadata().Group == "" {
+		if p.PluginInfo().Group == "" {
 			filtered[""] = append(filtered[""], p)
 		} else {
-			filtered[p.Metadata().Group] = append(filtered[p.Metadata().Group], p)
+			filtered[p.PluginInfo().Group] = append(filtered[p.PluginInfo().Group], p)
 		}
 	}
 
@@ -65,19 +64,19 @@ func (h *helper) listplugins(bot bot.Bot, event *event.MessageEvent, params *par
 		if group == "" {
 			msgs += "Available plugins:\n"
 			for _, p := range ps {
-				msgs += "- " + p.Metadata().Name + "\n"
+				msgs += "- " + p.PluginInfo().Name + "\n"
 			}
 		} else {
 			msgs += "Available plugins in group " + group + ":\n"
 			for _, p := range ps {
-				msgs += "- " + p.Metadata().Name + "\n"
+				msgs += "- " + p.PluginInfo().Name + "\n"
 			}
 		}
 	}
 
 	if event.IsGroup() {
-		bot.Send("0", event.ChatID(), message.New(msgs))
+		bot.Send("0", event.ChatID(), messages.New(msgs))
 	} else {
-		bot.Send(event.UserID(), "0", message.New(msgs))
+		bot.Send(event.UserID(), "0", messages.New(msgs))
 	}
 }

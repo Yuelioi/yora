@@ -11,7 +11,6 @@ import (
 	"yora/pkg/conf"
 	"yora/plugins/builtin/echo"
 	"yora/plugins/builtin/help"
-	"yora/plugins/yueling/funny"
 
 	"github.com/rs/zerolog"
 )
@@ -24,16 +23,18 @@ func main() {
 	bot := bot.NewBot(conf.NewBotConfig())
 
 	// 添加中间件
-	bot.RegisterMiddlewares(middleware.LoggingMiddleware()) // 日志
-	bot.RegisterMiddlewares(middleware.RecoveryMiddleware())
-	bot.RegisterMiddlewares(middleware.RateLimitMiddleware(10, 1*time.Minute)) // 频率限制
+	bot.RegisterMiddlewares(
+		middleware.LoggingMiddleware(),
+		middleware.RateLimitMiddleware(10, 1*time.Minute), // 频率限制
+		middleware.RecoveryMiddleware(),
+	)
 
 	// 注册适配器
 	bot.RegisterAdapters(qqAdapter)
 
 	// 注册插件
 	bot.RegisterPlugins(echo.New(), help.New())
-	bot.RegisterPlugins(funny.Plugins...)
+	// bot.RegisterPlugins(funny.Plugins...)
 
 	// 启动机器人
 	if err := bot.Run(); err != nil {

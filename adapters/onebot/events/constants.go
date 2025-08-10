@@ -1,4 +1,4 @@
-package event
+package events
 
 type PostType string
 type MessageType string
